@@ -293,7 +293,7 @@ const CartDrawerComponent = () => {
 
   const handleCheckout = () => {
     toggleCart();
-    navigate('/Cart');
+    navigate('/Payment');
   };
 
   const handleAddWishlistToCart = async (wishlistItem) => {

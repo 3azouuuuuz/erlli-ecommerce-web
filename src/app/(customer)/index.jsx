@@ -84,12 +84,10 @@ const TopProductCard = styled.div`
   cursor: pointer;
   transition: transform 0.2s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  
   &:hover {
     transform: scale(1.08);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   }
-  
   &:active {
     transform: scale(0.98);
   }
@@ -116,7 +114,6 @@ const Index = () => {
       setLoadingTopProducts(true);
       const { data: orders, error } = await supabase.from('orders').select('items').eq('status', 'succeeded');
       if (error) throw error;
-
       const productCounts = {};
       orders.forEach(order => {
         order.items.forEach(item => {
@@ -127,12 +124,10 @@ const Index = () => {
           productCounts[mainProductId].count += item.quantity;
         });
       });
-
       const sortedProducts = Object.values(productCounts)
         .sort((a, b) => b.count - a.count)
         .slice(0, 4)
         .map(item => ({ ...item.product, orderCount: item.count }));
-
       const topProductIds = sortedProducts.map(p => p.id);
       if (topProductIds.length > 0) {
         const { data: mainProducts, error: productError } = await supabase
@@ -140,7 +135,6 @@ const Index = () => {
           .select('*')
           .in('id', topProductIds);
         if (productError) throw productError;
-
         const enrichedProducts = sortedProducts.map(sp => {
           const mainProduct = mainProducts.find(mp => mp.id === sp.id) || sp;
           return { ...mainProduct, orderCount: sp.orderCount };
@@ -167,19 +161,15 @@ const Index = () => {
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
-
       if (flashSaleError || !flashSaleData) {
         throw new Error('No active flash sale event found');
       }
-
       const endTime = flashSaleData.end_time;
       const now = new Date();
       const end = new Date(endTime);
-
       if (end <= now) {
         throw new Error('Flash sale has ended');
       }
-
       setFlashSaleEndTime(endTime);
       setFlashSaleId(flashSaleData.id);
     } catch (err) {
@@ -199,12 +189,10 @@ const Index = () => {
       setTimerText('00:00:00:00');
       return;
     }
-
     const updateTimer = () => {
       const now = new Date();
       const end = new Date(flashSaleEndTime);
       const difference = end - now;
-
       if (difference <= 0) {
         setTimerText('00:00:00:00');
         if (timerRef.current) {
@@ -213,19 +201,15 @@ const Index = () => {
         fetchFlashSaleEndTime();
         return;
       }
-
       const days = Math.floor(difference / (1000 * 60 * 60 * 24));
       const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
       const newTimerText = `${String(days).padStart(2, '0')}:${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
       setTimerText(newTimerText);
     };
-
     updateTimer();
     timerRef.current = setInterval(updateTimer, 1000);
-
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -266,8 +250,8 @@ const Index = () => {
         isConnected={!!user}
         avatarUrl={profile?.avatar_url}
         userRole={profile?.role}
-        userName={profile?.first_name && profile?.last_name 
-          ? `${profile.first_name} ${profile.last_name}` 
+        userName={profile?.first_name && profile?.last_name
+          ? `${profile.first_name} ${profile.last_name}`
           : profile?.first_name || profile?.email?.split('@')[0] || 'User'}
         userEmail={profile?.email || user?.email}
         onLogout={logout}
@@ -314,7 +298,7 @@ const Index = () => {
               onPress={handleItemPress}
               timer={timerText}
             />
-            <ItemWithBadge onPress={handleProductPress} />
+            <ItemWithBadge onPress={() => navigate('/FlashSale')} />
           </>
         )}
         

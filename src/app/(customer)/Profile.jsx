@@ -7,7 +7,6 @@ import TitleWithAction from '../../components/TitleWithAction';
 import GridItems from '../../components/GridItems';
 import ItemsList from '../../components/Items';
 import MostPopular from '../../components/MostPopular';
-import RoundShapeList from '../../components/RoundShapeList';
 import { supabase } from '../../lib/supabase';
 import { IoStar, IoArrowForward } from 'react-icons/io5';
 import { MdLocalShipping, MdRateReview, MdError } from 'react-icons/md';
@@ -115,6 +114,7 @@ const ArrowButton = styled.button`
   }
 `;
 
+// MODIFIED - Now matches Index.js exactly
 const RecentlyViewedContainer = styled.div`
   display: flex;
   overflow-x: auto;
@@ -127,17 +127,30 @@ const RecentlyViewedContainer = styled.div`
   }
 `;
 
-const TouchableOverlay = styled.div`
+// MODIFIED - Now matches Index.js TopProductCard exactly
+const TopProductCard = styled.div`
+  min-width: 120px;
   width: 120px;
   height: 120px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  border-radius: 50%;
+  overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   &:hover {
-    transform: scale(1.05);
+    transform: scale(1.08);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   }
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+// MODIFIED - Now matches Index.js TopProductImage exactly
+const TopProductImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 `;
 
 const OrderButton = styled.button`
@@ -480,7 +493,6 @@ const Profile = () => {
         return;
       }
       try {
-        // Fetch user rewards for the First Purchase voucher (id 1)
         const { data: userRewardsData, error: userRewardsError } = await supabase
           .from('user_rewards')
           .select('is_collected, is_used, validity')
@@ -492,7 +504,6 @@ const Profile = () => {
         if (userRewardsData && userRewardsData.length > 0) {
           const userReward = userRewardsData[0];
           if (userReward.is_collected && !userReward.is_used) {
-            // Check if voucher is expiring soon (within 3 days)
             const currentDate = new Date();
             const expiryDate = new Date(userReward.validity);
             const timeDiff = expiryDate - currentDate;
@@ -601,16 +612,15 @@ const Profile = () => {
           {recentlyViewed.length === 0 ? (
             <NoItemsText>No recently viewed items</NoItemsText>
           ) : (
+            // MODIFIED - Now uses Index.js exact styling
             recentlyViewed.map((item) => (
-              <TouchableOverlay key={item.id} onClick={() => handleProductPress(item)}>
-                <RoundShapeList
-                  imageSource={item.image_url}
-                  selectable={false}
-                />
-              </TouchableOverlay>
+              <TopProductCard key={item.id} onClick={() => handleProductPress(item)}>
+                <TopProductImage src={item.image_url} alt={item.name} />
+              </TopProductCard>
             ))
           )}
         </RecentlyViewedContainer>
+        
         <Greeting>
           <SectionTitle>My Orders</SectionTitle>
         </Greeting>
@@ -646,6 +656,7 @@ const Profile = () => {
             </OrderInfo>
           </OrderCard>
         </OrdersGrid>
+        
         <TitleWithAction
           title="New Items"
           showClock={false}
@@ -677,13 +688,11 @@ const Profile = () => {
             {topProducts.length === 0 ? (
               <NoItemsText>No top products available</NoItemsText>
             ) : (
+              // MODIFIED - Now uses Index.js exact styling
               topProducts.map((item) => (
-                <TouchableOverlay key={item.id} onClick={() => handleProductPress(item)}>
-                  <RoundShapeList
-                    imageSource={item.image_url}
-                    selectable={false}
-                  />
-                </TouchableOverlay>
+                <TopProductCard key={item.id} onClick={() => handleProductPress(item)}>
+                  <TopProductImage src={item.image_url} alt={item.name} />
+                </TopProductCard>
               ))
             )}
           </RecentlyViewedContainer>

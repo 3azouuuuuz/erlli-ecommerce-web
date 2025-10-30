@@ -1,5 +1,6 @@
+// CustomerLayout.jsx
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { IoCartOutline } from 'react-icons/io5';
 import { useCart } from '../../contexts/CartContext';
@@ -11,9 +12,24 @@ import ProductList from './ProductList.jsx';
 import Profile from './Profile.jsx';
 import Settings from './Settings.jsx';
 import ProductsView from './ProductsView.jsx';
+import FlashSale from './FlashSale.jsx';
+import ProfileSettings from './ProfileSettings.jsx';
+import SecuritySettings from './SecuritySettings.jsx';
+import AdressSettings from './AdressSettings.jsx';
+import PaymentMethods from './PaymentMethods.jsx';
+import Country from './Country.jsx';
+import Currency from './Currency.jsx';
+import Lang from './Lang.jsx';
+import About from './About.jsx';
 import { CartProvider } from '../../contexts/CartContext';
 import CartDrawerComponent from '../../components/CartDrawer';
-
+import Vouchers from './Vouchers.jsx';
+import Payment from './Payment.jsx';
+import Orders from './Orders.jsx';
+import CustomerOrderDetails from './CustomerOrderDetails.jsx';
+import SupportChat from './SupportChat.jsx';
+import StoreDetail from './StoreDetails.jsx'
+// Styled Components (unchanged)
 const FloatingCartButton = styled.button`
   position: fixed;
   bottom: 32px;
@@ -30,12 +46,10 @@ const FloatingCartButton = styled.button`
   cursor: pointer;
   z-index: 1000;
   transition: all 0.3s ease;
-
   &:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 188, 125, 0.4);
   }
-
   @media (max-width: 768px) {
     bottom: 16px;
     right: 16px;
@@ -47,7 +61,6 @@ const FloatingCartButton = styled.button`
 const CartIcon = styled(IoCartOutline)`
   color: white;
   font-size: 28px;
-
   @media (max-width: 768px) {
     font-size: 24px;
   }
@@ -68,7 +81,6 @@ const CartBadge = styled.span`
   font-size: 12px;
   font-weight: 600;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-
   @media (max-width: 768px) {
     width: 20px;
     height: 20px;
@@ -78,6 +90,7 @@ const CartBadge = styled.span`
   }
 `;
 
+// Cart Button Component
 const CartButtonWrapper = () => {
   const { toggleCart, itemCount } = useCart();
   return (
@@ -88,21 +101,46 @@ const CartButtonWrapper = () => {
   );
 };
 
+// Main Layout
 function CustomerLayout() {
+  const location = useLocation();
+  const isSupportChat = location.pathname.includes('SupportChat');
+
   return (
     <CartProvider>
       <Routes>
         <Route index element={<CustomerIndex />} />
         <Route path="ItemsCategory" element={<ItemsCategory />} />
+        <Route path="CategoriesList" element={<CategoriesList />} />
+        <Route path="FlashSale" element={<FlashSale />} />
         <Route path="SearchResults" element={<SearchResults />} />
         <Route path="ProductList" element={<ProductList />} />
-        <Route path="CategoriesList" element={<CategoriesList />} />
         <Route path="Profile" element={<Profile />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="Settings" element={<Settings />} />
+        <Route path="ProfileSettings" element={<ProfileSettings />} />
+        <Route path="SecuritySettings" element={<SecuritySettings />} />
+        <Route path="AdressSettings" element={<AdressSettings />} />
+        <Route path="PaymentMethods" element={<PaymentMethods />} />
+        <Route path="Country" element={<Country />} />
+        <Route path="Currency" element={<Currency />} />
+        <Route path="Lang" element={<Lang />} />
+        <Route path="About" element={<About />} />
         <Route path="ProductsView" element={<ProductsView />} />
+        <Route path="Vouchers" element={<Vouchers />} />
+        <Route path="Payment" element={<Payment />} />
+        <Route path="Orders" element={<Orders />} />
+        <Route path="CustomerOrderDetails" element={<CustomerOrderDetails />} />
+        <Route path="SupportChat" element={<SupportChat />} />
+        <Route path='StoreDetail' element={<StoreDetail/>} />
       </Routes>
-      <CartDrawerComponent />
-      <CartButtonWrapper />
+
+      
+      {!isSupportChat && (
+        <>
+          <CartDrawerComponent />
+          <CartButtonWrapper />
+        </>
+      )}
     </CartProvider>
   );
 }

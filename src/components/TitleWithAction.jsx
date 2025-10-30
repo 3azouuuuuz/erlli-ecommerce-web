@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { IoTimeOutline, IoArrowForward } from 'react-icons/io5';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Container = styled.div`
   display: flex;
@@ -17,7 +18,7 @@ const Title = styled.h3`
   font-family: 'Raleway', sans-serif;
   line-height: 30px;
   letter-spacing: -0.21px;
-  color: #202020;
+  color: ${props => props.$titleColor || '#202020'};
 `;
 
 const FlashSaleContainer = styled.div`
@@ -40,7 +41,7 @@ const TimeContainer = styled.div`
 `;
 
 const TimeCell = styled.div`
-  background-color: #FFEBEB;
+  background-color: ${props => props.$timeCellColor || '#FFEBEB'};
   border-radius: 7px;
   height: 27px;
   min-width: 30px;
@@ -53,7 +54,7 @@ const TimeCell = styled.div`
 const TimeText = styled.span`
   font-size: 14px;
   font-weight: 700;
-  color: #202020;
+  color: ${props => props.$timeTextColor || '#202020'};
   font-family: 'Raleway', sans-serif;
   line-height: 1;
 `;
@@ -61,7 +62,7 @@ const TimeText = styled.span`
 const Colon = styled.span`
   font-size: 14px;
   font-weight: 700;
-  color: #202020;
+  color: ${props => props.$colonColor || '#202020'};
   font-family: 'Raleway', sans-serif;
 `;
 
@@ -87,7 +88,7 @@ const SeeAllButton = styled.button`
 
 const SeeAllText = styled.span`
   font-size: 15px;
-  color: #202020;
+  color: ${props => props.$seeAllTextColor || '#202020'};
   font-family: 'Raleway', sans-serif;
   line-height: 17px;
   font-weight: 700;
@@ -97,14 +98,14 @@ const ArrowContainer = styled.div`
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: #00BC7D;
+  background-color: ${props => props.$arrowColor || '#00BC7D'};
   display: flex;
   justify-content: center;
   align-items: center;
   transition: all 0.2s ease;
   
   ${SeeAllButton}:hover & {
-    background-color: #00E89D;
+    background-color: ${props => props.$arrowHoverColor || '#00E89D'};
     transform: scale(1.1);
   }
   
@@ -122,41 +123,69 @@ const TitleWithAction = ({
   title,
   showClock = false,
   onPress,
-  clockColor = '#202020',
+  clockColor,
   clockSize = 17,
   titleStyle,
   timer = '00:00:00:00'
 }) => {
+  const themeContext = useTheme();
+  const theme = themeContext?.theme || {};
+  
+  // Theme-based colors with fallbacks
+  const titleColor = theme?.titleColor || '#202020';
+  const timeCellColor = theme?.timeCellColor || '#FFEBEB';
+  const timeTextColor = theme?.timeTextColor || '#202020';
+  const colonColor = theme?.colonColor || '#202020';
+  const seeAllTextColor = theme?.seeAllTextColor || '#202020';
+  const arrowColor = theme?.arrowColor || '#00BC7D';
+  const arrowHoverColor = theme?.arrowHoverColor || '#00E89D';
+  const clockIconColor = clockColor || theme?.clockIconColor || '#202020';
+
   const timerParts = timer.split(':');
 
   return (
     <Container>
-      <Title style={titleStyle}>{title}</Title>
+      <Title style={titleStyle} $titleColor={titleColor}>
+        {title}
+      </Title>
       {showClock ? (
         <FlashSaleContainer>
-          <ClockIcon size={clockSize} color={clockColor} />
+          <ClockIcon size={clockSize} color={clockIconColor} />
           <TimeContainer>
-            <TimeCell>
-              <TimeText>{timerParts[0]}</TimeText>
+            <TimeCell $timeCellColor={timeCellColor}>
+              <TimeText $timeTextColor={timeTextColor}>
+                {timerParts[0]}
+              </TimeText>
             </TimeCell>
-            <Colon>:</Colon>
-            <TimeCell>
-              <TimeText>{timerParts[1]}</TimeText>
+            <Colon $colonColor={colonColor}>:</Colon>
+            <TimeCell $timeCellColor={timeCellColor}>
+              <TimeText $timeTextColor={timeTextColor}>
+                {timerParts[1]}
+              </TimeText>
             </TimeCell>
-            <Colon>:</Colon>
-            <TimeCell>
-              <TimeText>{timerParts[2]}</TimeText>
+            <Colon $colonColor={colonColor}>:</Colon>
+            <TimeCell $timeCellColor={timeCellColor}>
+              <TimeText $timeTextColor={timeTextColor}>
+                {timerParts[2]}
+              </TimeText>
             </TimeCell>
-            <Colon>:</Colon>
-            <TimeCell>
-              <TimeText>{timerParts[3]}</TimeText>
+            <Colon $colonColor={colonColor}>:</Colon>
+            <TimeCell $timeCellColor={timeCellColor}>
+              <TimeText $timeTextColor={timeTextColor}>
+                {timerParts[3]}
+              </TimeText>
             </TimeCell>
           </TimeContainer>
         </FlashSaleContainer>
       ) : (
         <SeeAllButton onClick={onPress}>
-          <SeeAllText>See All</SeeAllText>
-          <ArrowContainer>
+          <SeeAllText $seeAllTextColor={seeAllTextColor}>
+            See All
+          </SeeAllText>
+          <ArrowContainer
+            $arrowColor={arrowColor}
+            $arrowHoverColor={arrowHoverColor}
+          >
             <ArrowIcon />
           </ArrowContainer>
         </SeeAllButton>
