@@ -8,7 +8,7 @@ import GridItems from '../../components/GridItems';
 import ItemsList from '../../components/Items';
 import MostPopular from '../../components/MostPopular';
 import { supabase } from '../../lib/supabase';
-import { IoStar, IoArrowForward } from 'react-icons/io5';
+import { IoStar, IoArrowForward, IoTicket, IoTime, IoGift } from 'react-icons/io5';
 import { MdLocalShipping, MdRateReview, MdError } from 'react-icons/md';
 
 const PageContainer = styled.div`
@@ -62,22 +62,74 @@ const StarIcon = styled(IoStar)`
 `;
 
 const AnnouncementContainer = styled.div`
-  background: #F8F8F8;
-  border-radius: 10px;
-  padding: 15px;
+  background: ${props => props.$isExpiring 
+    ? 'linear-gradient(135deg, #FFF5F5 0%, #FFE8E8 100%)' 
+    : 'linear-gradient(135deg, #F0FDF9 0%, #E6FCF5 100%)'};
+  border-radius: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  border: 2px solid ${props => props.$isExpiring ? '#FFD4D4' : '#D0FAE5'};
+  box-shadow: 0 4px 16px ${props => props.$isExpiring 
+    ? 'rgba(255, 77, 79, 0.1)' 
+    : 'rgba(0, 188, 125, 0.1)'};
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${props => props.$isExpiring 
+      ? 'linear-gradient(90deg, #FF4D4F 0%, #FF7875 100%)' 
+      : 'linear-gradient(90deg, #00BC7D 0%, #00E89D 100%)'};
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px ${props => props.$isExpiring 
+      ? 'rgba(255, 77, 79, 0.15)' 
+      : 'rgba(0, 188, 125, 0.15)'};
+  }
+`;
+
+const AnnouncementHeader = styled.div`
+  display: flex;
+  align-items: center;
   gap: 10px;
+  margin-bottom: 4px;
+`;
+
+const AnnouncementIconWrapper = styled.div`
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: ${props => props.$isExpiring ? '#FFF' : '#FFF'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px ${props => props.$isExpiring 
+    ? 'rgba(255, 77, 79, 0.2)' 
+    : 'rgba(0, 188, 125, 0.2)'};
+
+  svg {
+    font-size: 20px;
+    color: ${props => props.$isExpiring ? '#FF4D4F' : '#00BC7D'};
+  }
 `;
 
 const AnnouncementTitle = styled.h3`
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   font-family: 'Raleway', sans-serif;
-  line-height: 18px;
-  letter-spacing: -0.14px;
-  color: #000;
+  color: ${props => props.$isExpiring ? '#D32F2F' : '#00BC7D'};
   margin: 0;
+  flex: 1;
 `;
 
 const AnnouncementBody = styled.div`
@@ -85,36 +137,91 @@ const AnnouncementBody = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-`;
+  gap: 16px;
+  padding-left: 46px;
 
-const AnnouncementText = styled.p`
-  flex: 1;
-  font-size: 10px;
-  line-height: 15px;
-  font-weight: 400;
-  font-family: 'Nunito Sans', sans-serif;
-  color: ${props => props.isExpiring ? '#D97474' : '#000'};
-  margin: 0;
-`;
-
-const ArrowButton = styled.button`
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #00BC7D;
-  font-size: 20px;
-  transition: transform 0.2s ease;
-  &:hover {
-    transform: translateX(4px);
+  @media (max-width: 768px) {
+    padding-left: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 `;
 
-// MODIFIED - Now matches Index.js exactly
+const AnnouncementTextWrapper = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const AnnouncementText = styled.p`
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  font-family: 'Raleway', sans-serif;
+  color: ${props => props.$isExpiring ? '#D32F2F' : '#333'};
+  margin: 0;
+`;
+
+const AnnouncementSubtext = styled.p`
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  font-family: 'Raleway', sans-serif;
+  color: ${props => props.$isExpiring ? '#FF7875' : '#666'};
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  svg {
+    font-size: 14px;
+  }
+`;
+
+const ActionButton = styled.button`
+  background: ${props => props.$isExpiring 
+    ? 'linear-gradient(135deg, #FF4D4F 0%, #FF7875 100%)' 
+    : 'linear-gradient(135deg, #00BC7D 0%, #00A66A 100%)'};
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Raleway', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px ${props => props.$isExpiring 
+    ? 'rgba(255, 77, 79, 0.3)' 
+    : 'rgba(0, 188, 125, 0.3)'};
+  white-space: nowrap;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px ${props => props.$isExpiring 
+      ? 'rgba(255, 77, 79, 0.4)' 
+      : 'rgba(0, 188, 125, 0.4)'};
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  svg {
+    font-size: 18px;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+  }
+`;
+
 const RecentlyViewedContainer = styled.div`
   display: flex;
   overflow-x: auto;
@@ -127,7 +234,6 @@ const RecentlyViewedContainer = styled.div`
   }
 `;
 
-// MODIFIED - Now matches Index.js TopProductCard exactly
 const TopProductCard = styled.div`
   min-width: 120px;
   width: 120px;
@@ -146,7 +252,6 @@ const TopProductCard = styled.div`
   }
 `;
 
-// MODIFIED - Now matches Index.js TopProductImage exactly
 const TopProductImage = styled.img`
   width: 100%;
   height: 100%;
@@ -227,14 +332,14 @@ const OrderCard = styled.div`
     left: 0;
     right: 0;
     height: 4px;
-    background: ${props => props.color || '#00BC7D'};
+    background: ${props => props.$color || '#00BC7D'};
     transform: scaleX(0);
     transition: transform 0.3s ease;
   }
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    border-color: ${props => props.color || '#00BC7D'};
+    border-color: ${props => props.$color || '#00BC7D'};
   }
   &:hover::before {
     transform: scaleX(1);
@@ -250,14 +355,14 @@ const IconWrapper = styled.div`
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: ${props => props.bgColor || 'rgba(0, 188, 125, 0.1)'};
+  background: ${props => props.$bgColor || 'rgba(0, 188, 125, 0.1)'};
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   svg {
     font-size: 28px;
-    color: ${props => props.iconColor || '#00BC7D'};
+    color: ${props => props.$iconColor || '#00BC7D'};
   }
   @media (max-width: 768px) {
     width: 48px;
@@ -311,7 +416,7 @@ const Badge = styled.div`
   height: 22px;
   padding: 0 6px;
   border-radius: 11px;
-  background: ${props => props.bgColor || '#FF4D4F'};
+  background: ${props => props.$bgColor || '#FF4D4F'};
   color: white;
   font-size: 12px;
   font-weight: 700;
@@ -369,6 +474,7 @@ const Profile = () => {
   const [loadingTopProducts, setLoadingTopProducts] = useState(true);
   const [announcementMessage, setAnnouncementMessage] = useState('');
   const [isExpiring, setIsExpiring] = useState(false);
+  const [expiryDate, setExpiryDate] = useState('');
 
   // Fetch Recently Viewed
   useEffect(() => {
@@ -501,6 +607,8 @@ const Profile = () => {
         if (userRewardsError) throw userRewardsError;
         let message = '';
         let expiring = false;
+        let expiryDateStr = '';
+        
         if (userRewardsData && userRewardsData.length > 0) {
           const userReward = userRewardsData[0];
           if (userReward.is_collected && !userReward.is_used) {
@@ -509,26 +617,24 @@ const Profile = () => {
             const timeDiff = expiryDate - currentDate;
             const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
             if (daysDiff >= 0 && daysDiff <= 3) {
-              const formattedDate = `${(expiryDate.getMonth() + 1)
-                .toString()
-                .padStart(2, '0')}.${expiryDate
-                .getDate()
-                .toString()
-                .padStart(2, '0')}.${expiryDate
-                .getFullYear()
-                .toString()
-                .slice(-2)}`;
-              message = `Your voucher is expiring soon on ${formattedDate}`;
+              const formattedDate = expiryDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+              });
+              message = `Your voucher is expiring soon!`;
+              expiryDateStr = formattedDate;
               expiring = true;
             }
           } else if (!userReward.is_collected) {
-            message = 'You have a voucher ready to collect!';
+            message = 'You have an exclusive voucher waiting for you!';
           }
         } else {
-          message = 'You have a voucher ready to collect!';
+          message = 'You have an exclusive voucher waiting for you!';
         }
         setAnnouncementMessage(message);
         setIsExpiring(expiring);
+        setExpiryDate(expiryDateStr);
       } catch (error) {
         console.error('Error fetching voucher state:', error);
         setAnnouncementMessage('');
@@ -592,15 +698,37 @@ const Profile = () => {
         </Greeting>
         
         {announcementMessage && (
-          <AnnouncementContainer>
-            <AnnouncementTitle>Announcement</AnnouncementTitle>
+          <AnnouncementContainer $isExpiring={isExpiring}>
+            <AnnouncementHeader>
+              <AnnouncementIconWrapper $isExpiring={isExpiring}>
+                {isExpiring ? <IoTime /> : <IoGift />}
+              </AnnouncementIconWrapper>
+              <AnnouncementTitle $isExpiring={isExpiring}>
+                {isExpiring ? 'Urgent Reminder' : 'Special Offer'}
+              </AnnouncementTitle>
+            </AnnouncementHeader>
             <AnnouncementBody>
-              <AnnouncementText isExpiring={isExpiring}>
-                {announcementMessage}
-              </AnnouncementText>
-              <ArrowButton onClick={handleVoucherPress}>
+              <AnnouncementTextWrapper>
+                <AnnouncementText $isExpiring={isExpiring}>
+                  {announcementMessage}
+                </AnnouncementText>
+                {isExpiring && expiryDate && (
+                  <AnnouncementSubtext $isExpiring={isExpiring}>
+                    <IoTime />
+                    Expires on {expiryDate}
+                  </AnnouncementSubtext>
+                )}
+                {!isExpiring && (
+                  <AnnouncementSubtext>
+                    <IoTicket />
+                    Claim your special discount now
+                  </AnnouncementSubtext>
+                )}
+              </AnnouncementTextWrapper>
+              <ActionButton $isExpiring={isExpiring} onClick={handleVoucherPress}>
+                {isExpiring ? 'Use Now' : 'Claim Now'}
                 <IoArrowForward />
-              </ArrowButton>
+              </ActionButton>
             </AnnouncementBody>
           </AnnouncementContainer>
         )}
@@ -612,7 +740,6 @@ const Profile = () => {
           {recentlyViewed.length === 0 ? (
             <NoItemsText>No recently viewed items</NoItemsText>
           ) : (
-            // MODIFIED - Now uses Index.js exact styling
             recentlyViewed.map((item) => (
               <TopProductCard key={item.id} onClick={() => handleProductPress(item)}>
                 <TopProductImage src={item.image_url} alt={item.name} />
@@ -625,30 +752,30 @@ const Profile = () => {
           <SectionTitle>My Orders</SectionTitle>
         </Greeting>
         <OrdersGrid>
-          <OrderCard color="#FF4D4F" onClick={handleFailedPress}>
-            <IconWrapper bgColor="rgba(255, 77, 79, 0.1)" iconColor="#FF4D4F">
+          <OrderCard $color="#FF4D4F" onClick={handleFailedPress}>
+            <IconWrapper $bgColor="rgba(255, 77, 79, 0.1)" $iconColor="#FF4D4F">
               <MdError />
-              {hasFailedOrder && <Badge bgColor="#FF4D4F">{failedCount}</Badge>}
+              {hasFailedOrder && <Badge $bgColor="#FF4D4F">{failedCount}</Badge>}
             </IconWrapper>
             <OrderInfo>
               <OrderTitle>Failed</OrderTitle>
               <OrderSubtitle>Orders with issues</OrderSubtitle>
             </OrderInfo>
           </OrderCard>
-          <OrderCard color="#00BC7D" onClick={handleToReceivePress}>
-            <IconWrapper bgColor="rgba(0, 188, 125, 0.1)" iconColor="#00BC7D">
+          <OrderCard $color="#00BC7D" onClick={handleToReceivePress}>
+            <IconWrapper $bgColor="rgba(0, 188, 125, 0.1)" $iconColor="#00BC7D">
               <MdLocalShipping />
-              {hasProcessingOrder && <Badge bgColor="#00BC7D">{processingCount}</Badge>}
+              {hasProcessingOrder && <Badge $bgColor="#00BC7D">{processingCount}</Badge>}
             </IconWrapper>
             <OrderInfo>
               <OrderTitle>To Receive</OrderTitle>
               <OrderSubtitle>Orders in transit</OrderSubtitle>
             </OrderInfo>
           </OrderCard>
-          <OrderCard color="#FFA940" onClick={handleToReviewPress}>
-            <IconWrapper bgColor="rgba(255, 169, 64, 0.1)" iconColor="#FFA940">
+          <OrderCard $color="#FFA940" onClick={handleToReviewPress}>
+            <IconWrapper $bgColor="rgba(255, 169, 64, 0.1)" $iconColor="#FFA940">
               <MdRateReview />
-              {hasItemsToReview && <Badge bgColor="#FFA940">{toReviewCount}</Badge>}
+              {hasItemsToReview && <Badge $bgColor="#FFA940">{toReviewCount}</Badge>}
             </IconWrapper>
             <OrderInfo>
               <OrderTitle>To Review</OrderTitle>
@@ -688,7 +815,6 @@ const Profile = () => {
             {topProducts.length === 0 ? (
               <NoItemsText>No top products available</NoItemsText>
             ) : (
-              // MODIFIED - Now uses Index.js exact styling
               topProducts.map((item) => (
                 <TopProductCard key={item.id} onClick={() => handleProductPress(item)}>
                   <TopProductImage src={item.image_url} alt={item.name} />

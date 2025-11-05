@@ -4,11 +4,11 @@ import { IoArrowForward, IoClose, IoTrash, IoPersonOutline, IoLogOutOutline, IoS
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { useTheme } from '../contexts/ThemeContext'; // ✅ ADDED: Import useTheme
+import { useTheme } from '../contexts/ThemeContext';
 import iconx from '../assets/images/iconx.png';
-// === NEW: Simple Public Image Component (EXACTLY like React Native) ===
+
+// === Simple Public Image Component ===
 const ProfileImage = ({ src, alt, size = 48, ...props }) => {
-  // Handle null/undefined src (exactly like React Native profile?.avatar_url)
   const imageSrc = src || null;
  
   if (!imageSrc) {
@@ -28,6 +28,7 @@ const ProfileImage = ({ src, alt, size = 48, ...props }) => {
       </div>
     );
   }
+  
   return (
     <img
       src={imageSrc}
@@ -39,7 +40,6 @@ const ProfileImage = ({ src, alt, size = 48, ...props }) => {
         objectFit: 'cover',
       }}
       onError={(e) => {
-        // Fallback if image fails to load
         e.target.style.display = 'none';
         e.target.nextSibling.style.display = 'flex';
       }}
@@ -47,7 +47,8 @@ const ProfileImage = ({ src, alt, size = 48, ...props }) => {
     />
   );
 };
-// === ALL YOUR EXISTING STYLED COMPONENTS (UNCHANGED) ===
+
+// === Styled Components ===
 const ShopHeaderContainer = styled.div`
   position: fixed;
   top: 0;
@@ -57,48 +58,56 @@ const ShopHeaderContainer = styled.div`
   z-index: 1000;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 `;
-const HeaderBubble = styled.img`  // ✅ NEW: Styled component for header bubble decorations
+
+const HeaderBubble = styled.img`
   position: absolute;
   top: 0px;
   right: -10px;
   width: 80px;
   height: auto;
-  z-index: 998;  // ✅ UPDATED: Lower z-index to allow secondary to layer on top
+  z-index: 998;
   opacity: 0.7;
   pointer-events: none;
   transition: opacity 0.3s ease;
-
+  
   @media (max-width: 768px) {
     width: 60px;
     right: 10px;
   }
 `;
-const HeaderBubbleSecondary = styled.img`  // ✅ NEW: Secondary bubble for layered effect
+
+const HeaderBubbleSecondary = styled.img`
   position: absolute;
   top: -5px;
   right: 5px;
   width: 60px;
   height: auto;
-  z-index: 999;  // ✅ UPDATED: Higher z-index to appear on top of the primary bubble
+  z-index: 999;
   opacity: 0.6;
   pointer-events: none;
   transform: rotate(5deg);
-
+  
   @media (max-width: 768px) {
     width: 45px;
     right: 0;
   }
 `;
+
 const ShopHeaderContent = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 4px;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 12px 24px;
+  max-width: 100%;
+  margin: 0;
   gap: 12px;
+  
+  @media (max-width: 768px) {
+    padding: 12px 16px;
+  }
 `;
+
 const TitleIcon = styled.img`
   width: 100px;
   height: 40px;
@@ -106,14 +115,17 @@ const TitleIcon = styled.img`
   cursor: pointer;
   transition: transform 0.2s ease;
   flex-shrink: 0;
+  
   &:hover {
     transform: scale(1.05);
   }
 `;
+
 const ProfileSection = styled.div`
   position: relative;
   flex-shrink: 0;
 `;
+
 const ProfileImgContainer = styled.div`
   width: 48px;
   height: 48px;
@@ -131,6 +143,7 @@ const ProfileImgContainer = styled.div`
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
+  
   &::before {
     content: '';
     position: absolute;
@@ -144,19 +157,21 @@ const ProfileImgContainer = styled.div`
     opacity: ${({ isOpen }) => (isOpen ? '1' : '0')};
     transition: opacity 0.3s ease;
   }
+  
   &:hover {
     transform: scale(1.08);
     box-shadow: 0 6px 20px rgba(0, 188, 125, 0.25);
+    
     &::before {
       opacity: 1;
     }
   }
+  
   &:active {
     transform: scale(0.98);
   }
 `;
-// === REMOVE OLD ProfileImg STYLED COMPONENT ===
-// (No longer needed - ProfileImage handles all styling)
+
 const ConnectButton = styled.button`
   background: linear-gradient(135deg, #00BC7D 0%, #00E89D 100%);
   color: #ffffff;
@@ -170,20 +185,23 @@ const ConnectButton = styled.button`
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 188, 125, 0.2);
   flex-shrink: 0;
+  
   &:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
   }
+  
   &:active {
     transform: scale(0.95);
   }
 `;
-// ... [KEEP ALL OTHER STYLED COMPONENTS EXACTLY THE SAME] ...
+
 const SearchBarContainer = styled.div`
   flex: 1;
   position: relative;
   max-width: 600px;
 `;
+
 const SearchBar = styled.div`
   display: flex;
   flex-direction: row;
@@ -198,17 +216,20 @@ const SearchBar = styled.div`
       ? '0 4px 16px rgba(0, 188, 125, 0.12)'
       : '0 2px 8px rgba(0, 0, 0, 0.04)'};
   cursor: pointer;
+  
   &:hover {
     background: ${({ isFilled, isOpen }) => (isFilled || isOpen ? '#D0FAE5' : '#F3F3F3')};
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 `;
+
 const SearchContent = styled.div`
   flex: 1;
   display: flex;
   align-items: center;
   padding-left: 4px;
 `;
+
 const SearchTermsContainer = styled.div`
   display: flex;
   flex-direction: row;
@@ -219,10 +240,12 @@ const SearchTermsContainer = styled.div`
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   flex: 1;
+  
   &::-webkit-scrollbar {
     display: none;
   }
 `;
+
 const SearchTerm = styled.div`
   display: flex;
   flex-direction: row;
@@ -233,6 +256,7 @@ const SearchTerm = styled.div`
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 188, 125, 0.2);
   animation: slideIn 0.3s ease;
+  
   @keyframes slideIn {
     from {
       opacity: 0;
@@ -244,12 +268,14 @@ const SearchTerm = styled.div`
     }
   }
 `;
+
 const SearchTermText = styled.span`
   font-size: 13px;
   font-weight: 600;
   color: #ffffff;
   font-family: 'Raleway', sans-serif;
 `;
+
 const RemoveTermButton = styled.button`
   margin-left: 6px;
   background: rgba(255, 255, 255, 0.3);
@@ -263,22 +289,27 @@ const RemoveTermButton = styled.button`
   justify-content: center;
   transition: all 0.2s ease;
   padding: 0;
+  
   &:hover {
     background: rgba(255, 255, 255, 0.5);
     transform: scale(1.1);
   }
+  
   &:active {
     transform: scale(0.95);
   }
 `;
+
 const RemoveIcon = styled(IoClose)`
   color: #ffffff;
   font-size: 14px;
 `;
+
 const InputWrapper = styled.div`
   flex: 1;
   min-width: 0;
 `;
+
 const ArrowIconContainer = styled.div`
   display: flex;
   align-items: center;
@@ -290,14 +321,17 @@ const ArrowIconContainer = styled.div`
   box-shadow: 0 2px 8px rgba(0, 188, 125, 0.3);
   transition: all 0.3s ease;
   transform: translateY(5px);
+  
   &:hover {
     transform: translateY(2px) scale(1.1) rotate(5deg);
     box-shadow: 0 4px 12px rgba(0, 188, 125, 0.4);
   }
+  
   &:active {
     transform: translateY(2px) scale(0.95);
   }
 `;
+
 const InputContainer = styled.div`
   flex: 1;
   background-color: transparent;
@@ -305,6 +339,7 @@ const InputContainer = styled.div`
   display: flex;
   align-items: center;
 `;
+
 const InputField = styled.input`
   flex: 1;
   font-size: 14px;
@@ -316,11 +351,13 @@ const InputField = styled.input`
   padding: 0 12px;
   height: 100%;
   width: 100%;
+  
   &::placeholder {
     color: #999;
     font-weight: 400;
   }
 `;
+
 const DropdownContainer = styled.div`
   position: absolute;
   top: calc(100% + 8px);
@@ -334,6 +371,7 @@ const DropdownContainer = styled.div`
   max-height: 400px;
   overflow-y: auto;
   animation: slideDown 0.3s ease;
+  
   @keyframes slideDown {
     from {
       opacity: 0;
@@ -345,6 +383,7 @@ const DropdownContainer = styled.div`
     }
   }
 `;
+
 const SearchHistoryContainer = styled.div`
   display: flex;
   flex-direction: row;
@@ -352,6 +391,7 @@ const SearchHistoryContainer = styled.div`
   align-items: center;
   margin-bottom: 12px;
 `;
+
 const Label = styled.span`
   font-family: 'Raleway', sans-serif;
   font-weight: 600;
@@ -360,6 +400,7 @@ const Label = styled.span`
   letter-spacing: -0.18px;
   color: #202020;
 `;
+
 const ClearHistoryButton = styled.button`
   background: none;
   border: none;
@@ -370,20 +411,24 @@ const ClearHistoryButton = styled.button`
   justify-content: center;
   border-radius: 50%;
   transition: all 0.2s ease;
+  
   &:hover {
     background: #ffebeb;
     transform: scale(1.1);
   }
+  
   &:active {
     transform: scale(0.95);
   }
 `;
+
 const HistoryRow = styled.div`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   gap: 8px;
 `;
+
 const HistoryItem = styled.button`
   padding: 8px 14px;
   background-color: #F8F8F8;
@@ -391,32 +436,38 @@ const HistoryItem = styled.button`
   border: 1px solid #f0f0f0;
   cursor: pointer;
   transition: all 0.2s ease;
+  
   &:hover {
     background-color: #E6FAF3;
     border-color: #00BC7D;
     transform: translateY(-2px);
     box-shadow: 0 2px 8px rgba(0, 188, 125, 0.15);
   }
+  
   &:active {
     transform: translateY(0);
   }
 `;
+
 const HistoryText = styled.span`
   font-size: 14px;
   color: #202020;
   font-family: 'Raleway', sans-serif;
 `;
+
 const NoHistoryText = styled.span`
   font-size: 14px;
   color: #999;
   font-family: 'Raleway', sans-serif;
   font-style: italic;
 `;
+
 const SuggestionsContainer = styled.div`
   margin-top: 16px;
   border-top: 1px solid #f0f0f0;
   padding-top: 12px;
 `;
+
 const SuggestionItem = styled.button`
   width: 100%;
   padding: 8px 14px;
@@ -426,21 +477,25 @@ const SuggestionItem = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
+  
   &:hover {
     background-color: #E6FAF3;
     border-color: #00BC7D;
     transform: translateY(-2px);
     box-shadow: 0 2px 8px rgba(0, 188, 125, 0.15);
   }
+  
   &:active {
     transform: translateY(0);
   }
 `;
+
 const SuggestionText = styled.span`
   font-size: 14px;
   color: #202020;
   font-family: 'Raleway', sans-serif;
 `;
+
 const ProfileDropdown = styled.div`
   position: absolute;
   top: calc(100% + 12px);
@@ -452,6 +507,7 @@ const ProfileDropdown = styled.div`
   z-index: 1002;
   min-width: 220px;
   animation: slideDown 0.3s ease;
+  
   &::before {
     content: '';
     position: absolute;
@@ -463,6 +519,7 @@ const ProfileDropdown = styled.div`
     transform: rotate(45deg);
     box-shadow: -2px -2px 4px rgba(0, 0, 0, 0.05);
   }
+  
   @keyframes slideDown {
     from {
       opacity: 0;
@@ -474,11 +531,13 @@ const ProfileDropdown = styled.div`
     }
   }
 `;
+
 const ProfileDropdownHeader = styled.div`
   padding: 16px;
   border-bottom: 1px solid #f0f0f0;
   margin-bottom: 8px;
 `;
+
 const ProfileName = styled.div`
   font-size: 16px;
   font-weight: 600;
@@ -486,11 +545,13 @@ const ProfileName = styled.div`
   font-family: 'Raleway', sans-serif;
   margin-bottom: 4px;
 `;
+
 const ProfileEmail = styled.div`
   font-size: 13px;
   color: #666;
   font-family: 'Raleway', sans-serif;
 `;
+
 const ProfileRole = styled.div`
   font-size: 12px;
   color: #00BC7D;
@@ -499,6 +560,7 @@ const ProfileRole = styled.div`
   text-transform: uppercase;
   margin-top: 4px;
 `;
+
 const DropdownMenuItem = styled.button`
   width: 100%;
   display: flex;
@@ -514,20 +576,25 @@ const DropdownMenuItem = styled.button`
   font-size: 14px;
   color: #202020;
   text-align: left;
+  
   &:hover {
     background: #f8f8f8;
     transform: translateX(4px);
   }
+  
   &:active {
     transform: translateX(2px);
   }
+  
   &.logout {
     color: #D97474;
+    
     &:hover {
       background: #ffebeb;
     }
   }
 `;
+
 const MenuIcon = styled.div`
   display: flex;
   align-items: center;
@@ -535,6 +602,8 @@ const MenuIcon = styled.div`
   font-size: 20px;
   color: inherit;
 `;
+
+// === Input Component ===
 const Input = ({ placeholder, value, onChange, onFocus, onKeyPress }) => {
   return (
     <InputContainer>
@@ -548,32 +617,46 @@ const Input = ({ placeholder, value, onChange, onFocus, onKeyPress }) => {
     </InputContainer>
   );
 };
-// === UPDATED SHOPHEADER COMPONENT ===
-const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEmail, onLogout, isFlashSale = false }) => {  // ✅ ADDED: isFlashSale prop
+
+// === Main ShopHeader Component ===
+const ShopHeader = ({ 
+  itemName, 
+  isConnected = false, 
+  avatarUrl, 
+  userRole, 
+  userEmail, 
+  onLogout, 
+  isFlashSale = false 
+}) => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { theme } = useTheme();  // ✅ ADDED: Access theme for decorations
+  const { theme } = useTheme();
+  
   const [searchText, setSearchText] = useState('');
   const [searchTerms, setSearchTerms] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+  
   const dropdownRef = useRef(null);
   const searchBarRef = useRef(null);
   const profileDropdownRef = useRef(null);
   const profileButtonRef = useRef(null);
  
-  // === EXACT SAME AS REACT NATIVE: profile?.avatar_url ===
   const fullName = profile?.first_name || profile?.last_name
     ? `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim()
     : 'User Name';
-  const actualAvatarUrl = profile?.avatar_url || avatarUrl; // Fallback to prop
+  const actualAvatarUrl = profile?.avatar_url || avatarUrl;
+
+  // Add item name to search terms
   useEffect(() => {
     if (itemName && !searchTerms.includes(itemName)) {
       setSearchTerms((prevTerms) => [...prevTerms, itemName]);
     }
   }, [itemName]);
+
+  // Handle click outside dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -584,6 +667,7 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
       ) {
         setIsDropdownOpen(false);
       }
+      
       if (
         profileDropdownRef.current &&
         !profileDropdownRef.current.contains(event.target) &&
@@ -593,25 +677,31 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
         setIsProfileDropdownOpen(false);
       }
     };
+
     if (isDropdownOpen || isProfileDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isDropdownOpen, isProfileDropdownOpen]);
+
+  // Fetch search suggestions
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (!searchText.trim()) {
         setSuggestions([]);
         return;
       }
+
       try {
         const { data, error } = await supabase
           .from('products')
           .select('name')
           .ilike('name', `%${searchText}%`)
           .limit(5);
+
         if (error) throw error;
         setSuggestions(data.map(item => item.name));
       } catch (error) {
@@ -619,22 +709,28 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
         setSuggestions([]);
       }
     };
+
     fetchSuggestions();
   }, [searchText]);
-  // ... [KEEP ALL OTHER FUNCTIONS EXACTLY THE SAME] ...
+
   const clearSearchText = () => setSearchText('');
+  
   const removeSearchTerm = (term) =>
     setSearchTerms((prevTerms) => prevTerms.filter((t) => t !== term));
+
   const handleSearchClick = () => {
     setIsDropdownOpen(true);
   };
+
   const clearHistory = () => {
     setSearchHistory([]);
   };
+
   const saveSearchHistory = (query) => {
     const updatedHistory = [query, ...searchHistory.filter(h => h !== query)].slice(0, 10);
     setSearchHistory(updatedHistory);
   };
+
   const handleSearch = () => {
     if (searchText.trim()) {
       setSearchTerms((prevTerms) => [...prevTerms, searchText]);
@@ -644,26 +740,31 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
       setIsDropdownOpen(false);
     }
   };
+
   const handleHistoryClick = (item) => {
     setSearchText(item);
     saveSearchHistory(item);
     navigate(`/searchResults?query=${encodeURIComponent(item)}`);
     setIsDropdownOpen(false);
   };
+
   const handleSuggestionClick = (item) => {
     setSearchText(item);
     saveSearchHistory(item);
     navigate(`/searchResults?query=${encodeURIComponent(item)}`);
     setIsDropdownOpen(false);
   };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
   };
+
   const handleProfileClick = () => {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
+
   const handleNavigateToProfile = () => {
     if (isConnected) {
       const targetRoute = userRole === 'vendor' ? '/vendor/profile' : '/profile';
@@ -671,23 +772,27 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
       setIsProfileDropdownOpen(false);
     }
   };
+
   const handleSettings = () => {
     navigate('/settings');
     setIsProfileDropdownOpen(false);
   };
+
   const handleLogout = () => {
     setIsProfileDropdownOpen(false);
     if (onLogout) {
       onLogout();
     }
   };
+
   return (
     <ShopHeaderContainer>
-      {/* ✅ NEW: Theme-specific bubble decorations for FlashSale page */}
       {isFlashSale && theme?.bubble4 && <HeaderBubble src={theme.bubble4} alt="" />}
       {isFlashSale && theme?.bubble3 && <HeaderBubbleSecondary src={theme.bubble3} alt="" />}
+      
       <ShopHeaderContent>
         <TitleIcon src={iconx} alt="Erlli Logo" onClick={() => navigate('/')} />
+        
         <SearchBarContainer ref={searchBarRef}>
           <SearchBar
             isFilled={searchTerms.length > 0}
@@ -729,6 +834,7 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
               <IoArrowForward style={{ fontSize: '18px', color: '#ffffff' }} />
             </ArrowIconContainer>
           </SearchBar>
+
           {isDropdownOpen && (
             <DropdownContainer ref={dropdownRef}>
               <SearchHistoryContainer>
@@ -752,6 +858,7 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
                   ))
                 )}
               </HistoryRow>
+
               {searchText.trim() && (
                 <SuggestionsContainer>
                   <Label>Suggestions</Label>
@@ -775,16 +882,17 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
             </DropdownContainer>
           )}
         </SearchBarContainer>
+
         {isConnected ? (
           <ProfileSection ref={profileButtonRef}>
             <ProfileImgContainer onClick={handleProfileClick} isOpen={isProfileDropdownOpen}>
-              {/* === EXACT SAME AS REACT NATIVE: source={{ uri: profile?.avatar_url }} === */}
               <ProfileImage
                 src={actualAvatarUrl}
                 alt="Profile Avatar"
                 size={48}
               />
             </ProfileImgContainer>
+            
             {isProfileDropdownOpen && (
               <ProfileDropdown ref={profileDropdownRef}>
                 <ProfileDropdownHeader>
@@ -792,18 +900,21 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
                   <ProfileEmail>{userEmail || 'user@example.com'}</ProfileEmail>
                   <ProfileRole>{userRole || 'customer'}</ProfileRole>
                 </ProfileDropdownHeader>
+                
                 <DropdownMenuItem onClick={handleNavigateToProfile}>
                   <MenuIcon>
                     <IoPersonOutline />
                   </MenuIcon>
                   View Profile
                 </DropdownMenuItem>
+                
                 <DropdownMenuItem onClick={handleSettings}>
                   <MenuIcon>
                     <IoSettingsOutline />
                   </MenuIcon>
                   Settings
                 </DropdownMenuItem>
+                
                 <DropdownMenuItem className="logout" onClick={handleLogout}>
                   <MenuIcon>
                     <IoLogOutOutline />
@@ -822,4 +933,5 @@ const ShopHeader = ({ itemName, isConnected = false, avatarUrl, userRole, userEm
     </ShopHeaderContainer>
   );
 };
+
 export default ShopHeader;

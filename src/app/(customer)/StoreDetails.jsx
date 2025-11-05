@@ -1,109 +1,718 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, TouchableOpacity, Image, Alert, Dimensions, ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import Template from '../../components/Template';
-import { wp, hp } from '../../helpers/common';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import styled from 'styled-components';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { useTranslation } from 'react-i18next';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../../contexts/AuthContext';
-import { useCurrency } from '../../contexts/CurrencyContext';
-import FilterModal from '../../components/FilterModal';
-import { LinearGradient } from 'expo-linear-gradient';
+import ShopHeader from '../../components/ShopHeader';
+import {
+  IoLocationSharp,
+  IoChatbubbleEllipsesOutline,
+  IoHeartOutline,
+  IoHeart,
+  IoCubeOutline,
+  IoCheckmarkCircleOutline,
+  IoBasketOutline,
+  IoClose,
+  IoChevronDown,
+  IoCheckmarkCircle,
+} from 'react-icons/io5';
+import FilterIcon from '../../assets/images/Filter.png'; // Ensure this path is correct
 
-// ProductItem component with enhanced styling
-const ProductItem = ({ item, onPress, currency, convertCurrency }) => {
-  const realPrice = item.price;
-  const hasDiscount = item.sale_percentage && item.sale_percentage > 0;
-  const discountedPrice = hasDiscount ? realPrice * (1 - item.sale_percentage / 100) : null;
+/* ──────────────────────────────────────
+   Existing Styled Components (unchanged)
+   ────────────────────────────────────── */
+const PageContainer = styled.div`
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #FAFAFA 0%, #FFFFFF 100%);
+  padding-top: 80px;
+  padding-bottom: 60px;
+`;
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  @media (max-width: 768px) {
+    padding: 24px 16px;
+  }
+`;
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  gap: 16px;
+`;
+const Spinner = styled.div`
+  width: 48px;
+  height: 48px;
+  border: 4px solid #E0E0E0;
+  border-top: 4px solid #00BC7D;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+const LoadingText = styled.p`
+  font-size: 16px;
+  font-family: 'Raleway', sans-serif;
+  color: #666;
+  font-weight: 600;
+`;
+const StoreHeader = styled.div`
+  background: linear-gradient(135deg, #FFFFFF 0%, #F9F9F9 100%);
+  border-radius: 24px;
+  padding: 32px;
+  margin-bottom: 32px;
+  border: 2px solid #E8E8E8;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  &:hover {
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+  }
+`;
+const StoreInfoRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+`;
+const LogoWrapper = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+const StoreLogo = styled.img`
+  width: 120px;
+  height: 120px;
+  border-radius: 60px;
+  object-fit: cover;
+  border: 4px solid #00BC7D;
+  box-shadow: 0 4px 16px rgba(0, 188, 125, 0.3);
+  @media (max-width: 768px) {
+    width: 100px;
+    height: 100px;
+  }
+`;
+const LikedBadge = styled.div`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #FF0000;
+  box-shadow: 0 2px 8px rgba(255, 0, 0, 0.3);
+  svg { color: #FF0000; }
+`;
+const StoreInfoContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+const StoreName = styled.h1`
+  font-size: 32px;
+  font-weight: 800;
+  font-family: 'Raleway', sans-serif;
+  color: #202020;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.5px;
+  @media (max-width: 768px) { font-size: 26px; }
+`;
+const LocationRow = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #F0FDF9 0%, #E6FCF5 100%);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 2px solid #D0FAE5;
+  margin-bottom: 16px;
+  svg { color: #00BC7D; }
+`;
+const LocationText = styled.span`
+  font-size: 14px;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 600;
+  color: #00BC7D;
+`;
+const StoreDescription = styled.p`
+  font-size: 15px;
+  font-family: 'Raleway', sans-serif;
+  color: #666;
+  line-height: 1.8;
+  margin: 0;
+  max-width: 800px;
+`;
+const ActionButtonsContainer = styled.div`
+  display: flex;
+  gap: 16px;
+  margin: 24px 0;
+  @media (max-width: 768px) { flex-direction: column; }
+`;
+const ActionButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  &:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); }
+  &:active { transform: translateY(0); }
+`;
+const ContactButton = styled(ActionButton)`
+  background: linear-gradient(135deg, #00BC7D 0%, #00A66A 100%);
+  color: white;
+  &:hover { background: linear-gradient(135deg, #00A66A 0%, #008F5A 100%); }
+`;
+const LikeButton = styled(ActionButton)`
+  background: ${p => p.isLiked ? 'linear-gradient(135deg, #FF0000 0%, #CC0000 100%)' : '#FFFFFF'};
+  color: ${p => p.isLiked ? '#FFFFFF' : '#FF0000'};
+  border: ${p => p.isLiked ? 'none' : '2px solid #FF0000'};
+  &:hover {
+    background: ${p => p.isLiked ? 'linear-gradient(135deg, #CC0000 0%, #990000 100%)' : '#FFF5F5'};
+  }
+`;
+const AnalyticsContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 24px;
+  background: #F8F9FA;
+  border-radius: 16px;
+  border: 2px solid #E8E8E8;
+  @media (max-width: 768px) { grid-template-columns: 1fr; }
+`;
+const StatCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  &:hover { transform: translateY(-4px); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); }
+`;
+const StatIconContainer = styled.div`
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: ${p => p.bgColor || '#F0F0F0'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  svg { font-size: 28px; color: ${p => p.iconColor || '#666'}; }
+`;
+const StatValue = styled.p`
+  font-size: 28px;
+  font-weight: 800;
+  font-family: 'Raleway', sans-serif;
+  color: #202020;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+`;
+const StatLabel = styled.p`
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Raleway', sans-serif;
+  color: #666;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+const ProductsSection = styled.div`
+  margin-top: 32px;
+`;
+const ProductsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #F0F0F0;
+`;
+const ProductsHeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+const ProductsTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  color: #000;
+  margin: 0;
+  letter-spacing: -0.3px;
+`;
+const ProductCountBadge = styled.div`
+  background: linear-gradient(135deg, #D0FAE5 0%, #B8F5D8 100%);
+  color: #00BC7D;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  border: 2px solid #B8F5D8;
+`;
+const ProductsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  @media (max-width: 768px) { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+`;
+const ProductCard = styled.div`
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid #F5F5F5;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  &:hover { transform: translateY(-6px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); border-color: #00BC7D; }
+`;
+const ProductImageWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  padding-top: 100%;
+  background: #F8F9FA;
+  overflow: hidden;
+`;
+const ProductImage = styled.img`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+const ImageOverlay = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));
+  pointer-events: none;
+`;
+const SaleBadge = styled.div`
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #FF3333 0%, #CC0000 100%);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  box-shadow: 0 2px 8px rgba(255, 51, 51, 0.5);
+  border: 2px solid white;
+`;
+const ProductInfo = styled.div`
+  padding: 16px;
+`;
+const ProductName = styled.h3`
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Raleway', sans-serif;
+  color: #202020;
+  margin: 0 0 12px 0;
+  min-height: 40px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+const PriceContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+const DiscountedPrice = styled.p`
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  color: #00BC7D;
+  margin: 0;
+`;
+const OriginalPriceRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+const OriginalPrice = styled.p`
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Raleway', sans-serif;
+  color: #999;
+  text-decoration: line-through;
+  margin: 0;
+`;
+const DiscountBadge = styled.span`
+  background: #FFE6E6;
+  color: #FF0000;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+`;
+const RegularPrice = styled.p`
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  color: #00BC7D;
+  margin: 0;
+`;
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  svg { font-size: 80px; color: #CCCCCC; margin-bottom: 24px; }
+`;
+const EmptyStateTitle = styled.h3`
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  color: #202020;
+  margin: 0 0 12px 0;
+`;
+const EmptyStateText = styled.p`
+  font-size: 16px;
+  font-family: 'Raleway', sans-serif;
+  color: #999;
+  margin: 0 0 24px 0;
+  max-width: 400px;
+`;
+const ClearFiltersButton = styled.button`
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #00BC7D 0%, #00A66A 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 188, 125, 0.3);
+  &:hover {
+    background: linear-gradient(135deg, #00A66A 0%, #008F5A 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 188, 125, 0.4);
+  }
+`;
 
-  const [formattedRealPrice, setFormattedRealPrice] = useState('');
-  const [formattedDiscountedPrice, setFormattedDiscountedPrice] = useState('');
+/* ──────────────────────────────────────
+   NEW FILTER STYLES (from ItemsCategory)
+   ────────────────────────────────────── */
+const FilterButtonStyled = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #00BC7D 0%, #00E89D 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Raleway', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 188, 125, 0.3);
+  &:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 188, 125, 0.4); }
+  &:active { transform: translateY(0); }
+`;
+const FilterIconImg = styled.img`
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1);
+`;
+const ChevronIcon = styled(IoChevronDown)`
+  font-size: 20px;
+  transition: transform 0.3s ease;
+  transform: rotate(${p => (p.$isOpen ? '180deg' : '0deg')});
+`;
+const FiltersDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  z-index: 1000;
+  width: 380px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  display: ${p => (p.$show ? 'block' : 'none')};
+  animation: slideDown 0.3s ease;
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  &::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 30px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    transform: rotate(45deg);
+    box-shadow: -2px -2px 4px rgba(0, 0, 0, 0.05);
+  }
+  @media (max-width: 480px) {
+    width: calc(100vw - 24px);
+    right: -12px;
+  }
+`;
+const FilterSection = styled.div`
+  margin-bottom: 20px;
+  &:last-of-type { margin-bottom: 0; }
+`;
+const FilterTitle = styled.h4`
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  margin: 0 0 10px 0;
+  color: #202020;
+`;
+const GenderOptions = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+const GenderButton = styled.button`
+  background: ${p => (p.$selected ? '#D0FAE5' : '#F9F9F9')};
+  border: 2px solid ${p => (p.$selected ? '#00BC7D' : 'transparent')};
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Raleway', sans-serif;
+  color: ${p => (p.$selected ? '#00BC7D' : '#000000')};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  &:hover { background: #D0FAE5; border-color: #00BC7D; }
+`;
+const SizeGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+`;
+const SizeButton = styled.button`
+  background: ${p => (p.$selected ? '#FFF' : '#ECFDF5')};
+  border: 2px solid ${p => (p.$selected ? '#00BC7D' : 'transparent')};
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  color: ${p => (p.$selected ? '#00BC7D' : '#B0B0B0')};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: ${p => (p.$selected ? '0 2px 6px rgba(0, 188, 125, 0.2)' : 'none')};
+  &:hover { background: #FFF; border-color: #00BC7D; color: #00BC7D; }
+`;
+const PriceInputs = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+`;
+const PriceInput = styled.input`
+  padding: 8px;
+  border: 2px solid #ECFDF5;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'Raleway', sans-serif;
+  outline: none;
+  &:focus { border-color: #00BC7D; }
+`;
+const ColorGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+`;
+const ColorButton = styled.button`
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: white;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  &:hover { transform: scale(1.1); }
+`;
+const ColorCircle = styled.div`
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: ${p => p.$color};
+  border: ${p => (p.$color === '#FFFFFF' ? '1px solid #E0E0E0' : 'none')};
+`;
+const CheckIcon = styled(IoCheckmarkCircle)`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 18px;
+  color: #00BC7D;
+  background: white;
+  border-radius: 50%;
+`;
+const FilterActions = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+`;
+const ResetButton = styled.button`
+  flex: 1;
+  padding: 10px;
+  background: #FF3333;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Raleway', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  &:hover { background: #E02020; transform: translateY(-2px); }
+  &:active { transform: translateY(0); }
+`;
+const ApplyButton = styled.button`
+  flex: 1;
+  padding: 10px;
+  background: #00BC7D;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Raleway', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  &:hover { background: #00A86B; transform: translateY(-2px); }
+  &:active { transform: translateY(0); }
+`;
+const FilterActiveBadge = styled.div`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #FF0000 0%, #CC0000 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(255, 0, 0, 0.4);
+`;
 
-  useEffect(() => {
-    const formatPrices = async () => {
-      try {
-        const realPriceFormatted = await convertCurrency(realPrice, currency);
-        setFormattedRealPrice(realPriceFormatted);
-        if (hasDiscount) {
-          const discountedPriceFormatted = await convertCurrency(discountedPrice, currency);
-          setFormattedDiscountedPrice(discountedPriceFormatted);
-        }
-      } catch (error) {
-        console.error('Error formatting prices:', error.message);
-        setFormattedRealPrice(realPrice.toLocaleString('en-US', { style: 'currency', currency: 'USD' }));
-        if (hasDiscount) {
-          setFormattedDiscountedPrice(discountedPrice.toLocaleString('en-US', { style: 'currency', currency: 'USD' }));
-        }
-      }
-    };
-    formatPrices();
-  }, [realPrice, discountedPrice, currency, convertCurrency]);
-
-  return (
-    <TouchableOpacity style={styles.gridItemContainer} onPress={() => onPress(item)} activeOpacity={0.7}>
-      <View style={styles.gridImageContainer}>
-        <Image source={{ uri: item.image_url }} style={styles.itemImage} resizeMode="cover" />
-        {hasDiscount && (
-          <View style={styles.saleBadge}>
-            <Text style={styles.saleText}>{item.sale_percentage}% OFF</Text>
-          </View>
-        )}
-        <View style={styles.imageOverlay} />
-      </View>
-      <View style={styles.productInfoContainer}>
-        <Text style={styles.gridItemDescription} numberOfLines={2}>{item.description}</Text>
-        {hasDiscount ? (
-          <View style={styles.priceContainer}>
-            <Text style={styles.gridDiscountedPrice}>{formattedDiscountedPrice}</Text>
-            <View style={styles.realPriceContainer}>
-              <Text style={styles.gridRealPrice}>{formattedRealPrice}</Text>
-              <View style={styles.discountBadge}>
-                <Text style={styles.gridDiscountPercentage}>-{item.sale_percentage}%</Text>
-              </View>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.priceContainer}>
-            <Text style={styles.gridItemPrice}>{formattedRealPrice}</Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-};
-
+/* ──────────────────────────────────────
+   Component
+   ────────────────────────────────────── */
 const StoreDetails = () => {
-  const { t } = useTranslation();
-  const { storeId, vendorId } = useLocalSearchParams();
-  const router = useRouter();
-  const { profile } = useAuth();
-  const { currency, convertCurrency } = useCurrency();
+  const { storeId, vendorId } = useParams();
+  const navigate = useNavigate();
+  const { user, profile, logout } = useAuth();
+
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [analytics, setAnalytics] = useState({ totalItems: 0, soldItems: 0, likesCount: 0 });
-  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedGender, setSelectedGender] = useState('All');
+  const [selectedSize, setSelectedSize] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [selectedColors, setSelectedColors] = useState([]);
   const [activeSubcategories, setActiveSubcategories] = useState([]);
 
-  const fetchStoreAndProducts = useCallback(async (reset = false) => {
-    if (reset) setLoading(true);
-    try {
-      // Fetch store details
-      if (reset) {
-        const { data: storeData, error: storeError } = await supabase
-          .from('stores')
-          .select('id, name, description, logo_url, country, city, state, address_line1, vendor_id')
-          .eq('id', storeId)
-          .single();
-        if (storeError) throw storeError;
-        setStore(storeData);
-      }
+  const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
 
-      // Fetch all products
+  const clothingSizes = ['XS', 'S', 'M', 'L', 'XL', '2XL'];
+  const shoeSizes = ['6', '7', '8', '9', '10', '11', '12'];
+  const genderOptions = ['All', 'Female', 'Male'];
+  const colorOptions = [
+    { name: 'Black', hex: '#000000' },
+    { name: 'White', hex: '#FFFFFF' },
+    { name: 'Red', hex: '#FF0000' },
+    { name: 'Blue', hex: '#0000FF' },
+    { name: 'Green', hex: '#008000' },
+    { name: 'Yellow', hex: '#FFFF00' },
+    { name: 'Pink', hex: '#FFC1CC' },
+    { name: 'Purple', hex: '#800080' },
+    { name: 'Orange', hex: '#FFA500' },
+    { name: 'Gray', hex: '#808080' },
+  ];
+
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = e => {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target) &&
+        buttonRef.current && !buttonRef.current.contains(e.target)
+      ) {
+        setShowFilters(false);
+      }
+    };
+    if (showFilters) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilters]);
+
+  // Fetch store & products
+  const fetchStoreAndProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data: storeData, error: storeError } = await supabase
+        .from('stores')
+        .select('id, name, description, logo_url, country, city, state, address_line1, vendor_id')
+        .eq('id', storeId)
+        .single();
+      if (storeError) throw storeError;
+      setStore(storeData);
+
       const { data: productData, error: productError } = await supabase
         .from('products')
         .select(`
@@ -112,742 +721,317 @@ const StoreDetails = () => {
           flash_sale_products (discount_percentage, flash_sale_id, flash_sales (start_time, end_time))
         `)
         .eq('vendor_id', vendorId);
-
       if (productError) throw productError;
 
       const currentTime = new Date().toISOString();
-      const enrichedProducts = productData.map(product => {
-        const activeFlashSale = product.flash_sale_products?.find(fsp => {
-          const sale = fsp.flash_sales;
-          return sale && sale.start_time <= currentTime && sale.end_time >= currentTime;
+      const enriched = productData.map(p => {
+        const active = p.flash_sale_products?.find(fsp => {
+          const s = fsp.flash_sales;
+          return s && s.start_time <= currentTime && s.end_time >= currentTime;
         });
-        return {
-          ...product,
-          sale_percentage: activeFlashSale ? activeFlashSale.discount_percentage : null,
-        };
+        return { ...p, sale_percentage: active ? active.discount_percentage : null };
       });
 
-      setProducts(enrichedProducts);
-      setFilteredProducts(enrichedProducts);
-    } catch (error) {
-      console.error('Error fetching store or products:', error.message);
-      if (reset) {
-        setProducts([]);
-        setFilteredProducts([]);
-      }
+      setProducts(enriched);
+      setFilteredProducts(enriched);
+    } catch (err) {
+      console.error(err);
+      setProducts([]);
+      setFilteredProducts([]);
     } finally {
-      if (reset) setLoading(false);
+      setLoading(false);
     }
   }, [storeId, vendorId]);
 
+  // Analytics
   const fetchAnalytics = useCallback(async () => {
     try {
       const targetVendorId = store?.vendor_id || vendorId;
-      
-      // Total items
-      const { count: totalItems, error: itemsError } = await supabase
-        .from('products')
-        .select('id', { count: 'exact' })
-        .eq('vendor_id', targetVendorId);
-      if (itemsError) throw itemsError;
-
-      // Sold items
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('items')
-        .eq('vendor_id', targetVendorId)
-        .eq('status', 'succeeded');
-      if (ordersError) throw ordersError;
-
-      const soldItems = ordersData.reduce((total, order) => {
-        const items = order.items || [];
-        return total + items.reduce((sum, item) => sum + (item.quantity || 0), 0);
-      }, 0);
-
-      // Store likes count
-      const { count: likesCount, error: likesError } = await supabase
-        .from('store_likes')
-        .select('id', { count: 'exact' })
-        .eq('store_id', storeId);
-      if (likesError) throw likesError;
-
+      const { count: totalItems } = await supabase.from('products').select('id', { count: 'exact' }).eq('vendor_id', targetVendorId);
+      const { data: ordersData } = await supabase.from('orders').select('items').eq('vendor_id', targetVendorId).eq('status', 'succeeded');
+      const soldItems = ordersData.reduce((t, o) => t + (o.items || []).reduce((s, i) => s + (i.quantity || 0), 0), 0);
+      const { count: likesCount } = await supabase.from('store_likes').select('id', { count: 'exact' }).eq('store_id', storeId);
       setAnalytics({ totalItems: totalItems || 0, soldItems, likesCount: likesCount || 0 });
-    } catch (error) {
-      console.error('Error fetching analytics:', error.message);
+    } catch (err) {
+      console.error(err);
       setAnalytics({ totalItems: 0, soldItems: 0, likesCount: 0 });
     }
   }, [store?.vendor_id, vendorId, storeId]);
 
-  // Apply filters when activeSubcategories changes
-  useEffect(() => {
-    if (activeSubcategories.length === 0) {
-      setFilteredProducts(products);
-    } else {
-      const filtered = products.filter(product => 
-        activeSubcategories.includes(product.subcategory_id)
-      );
-      setFilteredProducts(filtered);
-    }
-  }, [activeSubcategories, products]);
+  useEffect(() => { fetchStoreAndProducts(); }, [fetchStoreAndProducts]);
+  useEffect(() => { if (store?.vendor_id) fetchAnalytics(); }, [store?.vendor_id, fetchAnalytics]);
 
-  useEffect(() => {
-    fetchStoreAndProducts(true);
-  }, [fetchStoreAndProducts]);
-
-  useEffect(() => {
-    if (store?.vendor_id) {
-      fetchAnalytics();
-    }
-  }, [store?.vendor_id, fetchAnalytics]);
-
+  // Like status
   useEffect(() => {
     const checkIfLiked = async () => {
       if (!profile?.id || !storeId) return;
-      try {
-        const { data: likeData, error: likeError } = await supabase
-          .from('store_likes')
-          .select('id')
-          .eq('store_id', storeId)
-          .eq('user_id', profile.id)
-          .single();
-        if (likeError && likeError.code !== 'PGRST116') throw likeError;
-        setIsLiked(!!likeData);
-      } catch (error) {
-        console.error('Error checking if store is liked:', error.message);
-      }
+      const { data, error } = await supabase
+        .from('store_likes')
+        .select('id')
+        .eq('store_id', storeId)
+        .eq('user_id', profile.id)
+        .single();
+      if (error && error.code !== 'PGRST116') console.error(error);
+      setIsLiked(!!data);
     };
     checkIfLiked();
   }, [profile?.id, storeId]);
 
   const handleLikePress = async () => {
-    if (!profile?.id) {
-      Alert.alert(t('Error'), t('Please login to like the store.'));
-      return;
-    }
+    if (!profile?.id) { alert('Please login to like the store.'); return; }
     try {
       if (isLiked) {
-        const { error: deleteError } = await supabase
-          .from('store_likes')
-          .delete()
-          .eq('store_id', storeId)
-          .eq('user_id', profile.id);
-        if (deleteError) throw deleteError;
+        await supabase.from('store_likes').delete().eq('store_id', storeId).eq('user_id', profile.id);
         setIsLiked(false);
-        setAnalytics(prev => ({ ...prev, likesCount: Math.max(0, prev.likesCount - 1) }));
+        setAnalytics(p => ({ ...p, likesCount: Math.max(0, p.likesCount - 1) }));
       } else {
-        const { error: insertError } = await supabase
-          .from('store_likes')
-          .insert([{ store_id: storeId, user_id: profile.id, liked_at: new Date().toISOString() }]);
-        if (insertError) throw insertError;
+        await supabase.from('store_likes').insert([{ store_id: storeId, user_id: profile.id, liked_at: new Date().toISOString() }]);
         setIsLiked(true);
-        setAnalytics(prev => ({ ...prev, likesCount: prev.likesCount + 1 }));
+        setAnalytics(p => ({ ...p, likesCount: p.likesCount + 1 }));
       }
-    } catch (error) {
-      console.error('Error handling store like/unlike:', error.message);
-      Alert.alert(t('Error'), t('Failed to update like status.'));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update like status.');
     }
   };
 
-  const handleItemPress = (item) => {
-    router.push(`/ProductsView?product=${JSON.stringify(item)}`);
-  };
+  const handleContactVendor = () => navigate(`/messages/${vendorId}`);
+  const handleItemPress = item => navigate(`/product/${item.id}`, { state: { product: item } });
 
-  const handleContactVendor = () => {
-    if (!vendorId) {
-      Alert.alert(t('Error'), t('NoVendorId'));
-      return;
+  // Filter logic
+  useEffect(() => {
+    let filtered = [...products];
+
+    if (activeSubcategories.length > 0) {
+      filtered = filtered.filter(p => activeSubcategories.includes(p.subcategory_id));
     }
-    router.push({
-      pathname: '/CustomerMessages',
-      params: { vendorId },
-    });
+    if (selectedGender !== 'All') {
+      filtered = filtered.filter(p => p.gender?.toLowerCase() === selectedGender.toLowerCase());
+    }
+    if (selectedSize) {
+      filtered = filtered.filter(p => p.size?.includes(selectedSize));
+    }
+    if (selectedColors.length > 0) {
+      filtered = filtered.filter(p => p.color && selectedColors.some(c => p.color.includes(c)));
+    }
+    if (minPrice) filtered = filtered.filter(p => p.price >= parseFloat(minPrice));
+    if (maxPrice) filtered = filtered.filter(p => p.price <= parseFloat(maxPrice));
+
+    setFilteredProducts(filtered);
+  }, [products, activeSubcategories, selectedGender, selectedSize, selectedColors, minPrice, maxPrice]);
+
+  const handleSubcategoryToggle = id => {
+    setActiveSubcategories(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   };
 
-  const handleApplyFilters = (filters) => {
-    setActiveSubcategories(filters.subcategories || []);
-    setIsFilterModalVisible(false);
+  const handleColorSelect = name => {
+    setSelectedColors(p => p.includes(name) ? p.filter(c => c !== name) : [...p, name]);
   };
 
-  if (loading && !store) {
+  const handleReset = () => {
+    setSelectedGender('All');
+    setSelectedSize('');
+    setMinPrice('');
+    setMaxPrice('');
+    setSelectedColors([]);
+    setActiveSubcategories([]);
+  };
+
+  const handleApply = () => setShowFilters(false);
+
+  const totalActiveFilters = 
+    (selectedGender !== 'All' ? 1 : 0) +
+    (selectedSize ? 1 : 0) +
+    (minPrice || maxPrice ? 1 : 0) +
+    selectedColors.length +
+    activeSubcategories.length;
+
+  if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00BC7D" />
-        <Text style={styles.loadingText}>Loading store...</Text>
-      </View>
+      <PageContainer>
+        <ShopHeader isConnected={!!user} avatarUrl={profile?.avatar_url} userRole={profile?.role} userEmail={profile?.email || user?.email} onLogout={logout} />
+        <LoadingContainer>
+          <Spinner />
+          <LoadingText>Loading store...</LoadingText>
+        </LoadingContainer>
+      </PageContainer>
     );
   }
 
-  const ListHeader = () => (
-    <View>
-      {/* Enhanced Store Header with Gradient */}
-      <LinearGradient
-        colors={['#FFFFFF', '#F8F9FA']}
-        style={styles.header}
-      >
-        {/* Store Info Row */}
-        <View style={styles.storeInfoRow}>
-          <View style={styles.logoWrapper}>
-            {store?.logo_url && (
-              <Image source={{ uri: store.logo_url }} style={styles.storeLogo} />
-            )}
-            {isLiked && (
-              <View style={styles.likedBadge}>
-                <Icon name="heart" size={12} color="#FF0000" />
-              </View>
-            )}
-          </View>
-          <View style={styles.storeNameContainer}>
-            <Text style={styles.storeName} numberOfLines={2}>{store?.name}</Text>
-            <View style={styles.locationRow}>
-              <Ionicons name="location" size={14} color="#00BC7D" />
-              <Text style={styles.storeLocation} numberOfLines={1}>
-                {store?.city}, {store?.state}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Store Description */}
-        {store?.description && (
-          <Text style={styles.storeDescription} numberOfLines={3}>{store.description}</Text>
-        )}
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity 
-            style={[styles.actionButtonLarge, styles.contactButton]} 
-            onPress={handleContactVendor}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="chatbubble-ellipses" size={20} color="#FFFFFF" />
-            <Text style={styles.actionButtonText}>Contact</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButtonLarge, isLiked ? styles.likedButton : styles.likeButton]} 
-            onPress={handleLikePress}
-            activeOpacity={0.8}
-          >
-            <Icon name={isLiked ? "heart" : "heart-o"} size={20} color={isLiked ? "#FFFFFF" : "#FF0000"} />
-            <Text style={[styles.actionButtonText, !isLiked && styles.likeButtonText]}>
-              {isLiked ? 'Liked' : 'Like'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Enhanced Analytics with Icons */}
-        <View style={styles.analyticsContainer}>
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Ionicons name="cube-outline" size={24} color="#00BC7D" />
-            </View>
-            <Text style={styles.statValue}>{analytics.totalItems}</Text>
-            <Text style={styles.statLabel}>{t('TotalItems')}</Text>
-          </View>
-          
-          <View style={styles.statDivider} />
-          
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Ionicons name="checkmark-circle-outline" size={24} color="#FF9900" />
-            </View>
-            <Text style={styles.statValue}>{analytics.soldItems}</Text>
-            <Text style={styles.statLabel}>{t('SoldItems')}</Text>
-          </View>
-          
-          <View style={styles.statDivider} />
-          
-          <View style={styles.statCard}>
-            <View style={styles.statIconContainer}>
-              <Icon name="heart" size={22} color="#FF0000" />
-            </View>
-            <Text style={styles.statValue}>{analytics.likesCount}</Text>
-            <Text style={styles.statLabel}>Likes</Text>
-          </View>
-        </View>
-      </LinearGradient>
-      
-      {/* Products Header with Filter */}
-      <View style={styles.productsHeader}>
-        <View style={styles.productsHeaderLeft}>
-          <Text style={styles.productsHeaderTitle}>{t('StoreItems')}</Text>
-          <View style={styles.productCountBadge}>
-            <Text style={styles.productCountText}>{filteredProducts.length}</Text>
-          </View>
-        </View>
-        <TouchableOpacity 
-          style={styles.filterButton} 
-          onPress={() => setIsFilterModalVisible(true)}
-          activeOpacity={0.7}
-        >
-          <Image
-            source={require('../../assets/images/Filter.png')}
-            style={styles.filterIcon}
-          />
-          {activeSubcategories.length > 0 && (
-            <View style={styles.filterActiveBadge}>
-              <Text style={styles.filterActiveBadgeText}>{activeSubcategories.length}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   return (
-    <Template bg="white">
-      <View style={styles.container}>
-        {filteredProducts.length === 0 ? (
-          <View style={styles.emptyStateContainer}>
-            <ScrollView 
-              contentContainerStyle={styles.emptyScrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <ListHeader />
-              <View style={styles.emptyState}>
-                <Ionicons name="basket-outline" size={80} color="#CCCCCC" />
-                <Text style={styles.emptyStateTitle}>No Products Found</Text>
-                <Text style={styles.emptyStateText}>
-                  {activeSubcategories.length > 0 
-                    ? 'Try adjusting your filters' 
-                    : 'This store has no products yet'}
-                </Text>
-                {activeSubcategories.length > 0 && (
-                  <TouchableOpacity 
-                    style={styles.clearFiltersButton}
-                    onPress={() => setActiveSubcategories([])}
-                  >
-                    <Text style={styles.clearFiltersText}>Clear Filters</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </ScrollView>
-          </View>
-        ) : (
-          <FlatList
-            data={filteredProducts}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <ProductItem
-                item={item}
-                onPress={handleItemPress}
-                currency={currency}
-                convertCurrency={convertCurrency}
-              />
-            )}
-            numColumns={2}
-            contentContainerStyle={styles.gridListContent}
-            ListHeaderComponent={ListHeader}
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled={true}
-          />
-        )}
-      </View>
+    <PageContainer>
+      <ShopHeader isConnected={!!user} avatarUrl={profile?.avatar_url} userRole={profile?.role} userEmail={profile?.email || user?.email} onLogout={logout} />
+      <Container>
+        {/* Store Header */}
+        <StoreHeader>
+          <StoreInfoRow>
+            <LogoWrapper>
+              {store?.logo_url && <StoreLogo src={store.logo_url} alt={store.name} />}
+              {isLiked && <LikedBadge><IoHeart size={18} /></LikedBadge>}
+            </LogoWrapper>
+            <StoreInfoContent>
+              <StoreName>{store?.name}</StoreName>
+              <LocationRow>
+                <IoLocationSharp size={18} />
+                <LocationText>{store?.city}, {store?.state}, {store?.country}</LocationText>
+              </LocationRow>
+              {store?.description && <StoreDescription>{store.description}</StoreDescription>}
+            </StoreInfoContent>
+          </StoreInfoRow>
+          <ActionButtonsContainer>
+            <ContactButton onClick={handleContactVendor}><IoChatbubbleEllipsesOutline size={22} />Contact Store</ContactButton>
+            <LikeButton isLiked={isLiked} onClick={handleLikePress}>
+              {isLiked ? <IoHeart size={22} /> : <IoHeartOutline size={22} />}
+              {isLiked ? 'Liked' : 'Like Store'}
+            </LikeButton>
+          </ActionButtonsContainer>
+          <AnalyticsContainer>
+            <StatCard><StatIconContainer bgColor="#F0FDF9" iconColor="#00BC7D"><IoCubeOutline /></StatIconContainer><StatValue>{analytics.totalItems}</StatValue><StatLabel>Total Items</StatLabel></StatCard>
+            <StatCard><StatIconContainer bgColor="#FFF7ED" iconColor="#FF9900"><IoCheckmarkCircleOutline /></StatIconContainer><StatValue>{analytics.soldItems}</StatValue><StatLabel>Items Sold</StatLabel></StatCard>
+            <StatCard><StatIconContainer bgColor="#FFF5F5" iconColor="#FF0000"><IoHeart /></StatIconContainer><StatValue>{analytics.likesCount}</StatValue><StatLabel>Store Likes</StatLabel></StatCard>
+          </AnalyticsContainer>
+        </StoreHeader>
 
-      {/* Filter Modal */}
-      <FilterModal
-        isVisible={isFilterModalVisible}
-        onClose={() => setIsFilterModalVisible(false)}
-        onApplyFilters={handleApplyFilters}
-        initialSubcategories={activeSubcategories}
-      />
-    </Template>
+        {/* Products */}
+        <ProductsSection>
+          <ProductsHeader>
+            <ProductsHeaderLeft>
+              <ProductsTitle>Store Products</ProductsTitle>
+              <ProductCountBadge>{filteredProducts.length}</ProductCountBadge>
+            </ProductsHeaderLeft>
+
+            {/* FILTER BUTTON */}
+            <div style={{ position: 'relative' }}>
+              <FilterButtonStyled ref={buttonRef} onClick={() => setShowFilters(!showFilters)}>
+                <FilterIconImg src={FilterIcon} alt="Filter" />
+                Filters
+                <ChevronIcon $isOpen={showFilters} />
+                {totalActiveFilters > 0 && <FilterActiveBadge>{totalActiveFilters}</FilterActiveBadge>}
+              </FilterButtonStyled>
+
+              {/* FILTERS DROPDOWN */}
+              <FiltersDropdown ref={dropdownRef} $show={showFilters}>
+                {/* Gender */}
+                <FilterSection>
+                  <FilterTitle>Gender</FilterTitle>
+                  <GenderOptions>
+                    {genderOptions.map(g => (
+                      <GenderButton key={g} $selected={selectedGender === g} onClick={() => setSelectedGender(g)}>{g}</GenderButton>
+                    ))}
+                  </GenderOptions>
+                </FilterSection>
+
+                {/* Size */}
+                <FilterSection>
+                  <FilterTitle>Size</FilterTitle>
+                  <SizeGrid>
+                    {(store?.name?.toLowerCase().includes('shoe') ? shoeSizes : clothingSizes).map(s => (
+                      <SizeButton key={s} $selected={selectedSize === s} onClick={() => setSelectedSize(selectedSize === s ? '' : s)}>{s}</SizeButton>
+                    ))}
+                  </SizeGrid>
+                </FilterSection>
+
+                {/* Price */}
+                <FilterSection>
+                  <FilterTitle>Price Range</FilterTitle>
+                  <PriceInputs>
+                    <PriceInput type="number" placeholder="Min $" value={minPrice} onChange={e => setMinPrice(e.target.value)} />
+                    <PriceInput type="number" placeholder="Max $" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} />
+                  </PriceInputs>
+                </FilterSection>
+
+                {/* Colors */}
+                <FilterSection>
+                  <FilterTitle>Colors</FilterTitle>
+                  <ColorGrid>
+                    {colorOptions.map(c => (
+                      <ColorButton key={c.name} onClick={() => handleColorSelect(c.name)}>
+                        <ColorCircle $color={c.hex} />
+                        {selectedColors.includes(c.name) && <CheckIcon />}
+                      </ColorButton>
+                    ))}
+                  </ColorGrid>
+                </FilterSection>
+
+                {/* Subcategories */}
+                {products.length > 0 && (
+                  <FilterSection>
+                    <FilterTitle>Subcategory</FilterTitle>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '6px' }}>
+                      {[...new Set(products.map(p => p.subcategory_id))].map(id => {
+                        const sub = products.find(p => p.subcategory_id === id);
+                        return (
+                          <SizeButton
+                            key={id}
+                            $selected={activeSubcategories.includes(id)}
+                            onClick={() => handleSubcategoryToggle(id)}
+                            style={{ fontSize: '12px' }}
+                          >
+                            {sub?.subcategory?.name || `ID ${id}`}
+                          </SizeButton>
+                        );
+                      })}
+                    </div>
+                  </FilterSection>
+                )}
+
+                <FilterActions>
+                  <ResetButton onClick={handleReset}>Reset</ResetButton>
+                  <ApplyButton onClick={handleApply}>Apply</ApplyButton>
+                </FilterActions>
+              </FiltersDropdown>
+            </div>
+          </ProductsHeader>
+
+          {/* Products or Empty */}
+          {filteredProducts.length === 0 ? (
+            <EmptyState>
+              <IoBasketOutline />
+              <EmptyStateTitle>No Products Found</EmptyStateTitle>
+              <EmptyStateText>
+                {totalActiveFilters > 0
+                  ? 'Try adjusting your filters to see more products'
+                  : 'This store has no products available at the moment'}
+              </EmptyStateText>
+              {totalActiveFilters > 0 && <ClearFiltersButton onClick={handleReset}>Clear All Filters</ClearFiltersButton>}
+            </EmptyState>
+          ) : (
+            <ProductsGrid>
+              {filteredProducts.map(product => {
+                const hasDiscount = product.sale_percentage && product.sale_percentage > 0;
+                const discounted = hasDiscount ? product.price * (1 - product.sale_percentage / 100) : null;
+                return (
+                  <ProductCard key={product.id} onClick={() => handleItemPress(product)}>
+                    <ProductImageWrapper>
+                      <ProductImage src={product.image_url} alt={product.description} />
+                      <ImageOverlay />
+                      {hasDiscount && <SaleBadge>{product.sale_percentage}% OFF</SaleBadge>}
+                    </ProductImageWrapper>
+                    <ProductInfo>
+                      <ProductName>{product.description}</ProductName>
+                      <PriceContainer>
+                        {hasDiscount ? (
+                          <>
+                            <DiscountedPrice>${discounted.toFixed(2)}</DiscountedPrice>
+                            <OriginalPriceRow>
+                              <OriginalPrice>${product.price.toFixed(2)}</OriginalPrice>
+                              <DiscountBadge>-{product.sale_percentage}%</DiscountBadge>
+                            </OriginalPriceRow>
+                          </>
+                        ) : (
+                          <RegularPrice>${product.price.toFixed(2)}</RegularPrice>
+                        )}
+                      </PriceContainer>
+                    </ProductInfo>
+                  </ProductCard>
+                );
+              })}
+            </ProductsGrid>
+          )}
+        </ProductsSection>
+      </Container>
+    </PageContainer>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    fontFamily: 'Raleway_600SemiBold',
-    color: '#666',
-  },
-  header: {
-    backgroundColor: '#fff',
-    padding: wp(4),
-    marginHorizontal: wp(3),
-    marginTop: hp(1.5),
-    marginBottom: hp(2),
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  storeInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: hp(2),
-  },
-  logoWrapper: {
-    position: 'relative',
-  },
-  storeLogo: {
-    width: wp(18),
-    height: wp(18),
-    borderRadius: wp(9),
-    borderWidth: 3,
-    borderColor: '#00BC7D',
-    shadowColor: '#00BC7D',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  likedBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FF0000',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  storeNameContainer: {
-    flex: 1,
-    marginLeft: wp(3),
-    justifyContent: 'center',
-  },
-  storeName: {
-    fontSize: 22,
-    fontFamily: 'Raleway_700Bold',
-    color: '#202020',
-    marginBottom: 6,
-    letterSpacing: -0.3,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0FDF9',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  storeLocation: {
-    fontSize: 13,
-    fontFamily: 'Raleway_600SemiBold',
-    color: '#00BC7D',
-    marginLeft: 4,
-    maxWidth: wp(40),
-  },
-  storeDescription: {
-    fontSize: 14,
-    fontFamily: 'Raleway_400Regular',
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: hp(2),
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: hp(2),
-  },
-  actionButtonLarge: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  contactButton: {
-    backgroundColor: '#00BC7D',
-  },
-  likeButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#FF0000',
-  },
-  likedButton: {
-    backgroundColor: '#FF0000',
-  },
-  actionButtonText: {
-    fontSize: 15,
-    fontFamily: 'Raleway_700Bold',
-    color: '#FFFFFF',
-  },
-  likeButtonText: {
-    color: '#FF0000',
-  },
-  analyticsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: hp(2),
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statValue: {
-    fontSize: 20,
-    fontFamily: 'Raleway_700Bold',
-    color: '#202020',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontFamily: 'Raleway_600SemiBold',
-    color: '#666',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#D0D0D0',
-    marginVertical: 8,
-  },
-  productsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  productsHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  productsHeaderTitle: {
-    fontSize: 20,
-    fontFamily: 'Raleway_700Bold',
-    color: '#000000',
-    letterSpacing: -0.3,
-  },
-  productCountBadge: {
-    backgroundColor: '#D0FAE5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  productCountText: {
-    fontSize: 13,
-    fontFamily: 'Raleway_700Bold',
-    color: '#00BC7D',
-  },
-  filterButton: {
-    position: 'relative',
-    padding: 8,
-    borderRadius: 10,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  filterIcon: {
-    width: 24,
-    height: 24,
-  },
-  filterActiveBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FF0000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  filterActiveBadgeText: {
-    fontSize: 11,
-    fontFamily: 'Raleway_700Bold',
-    color: '#FFFFFF',
-  },
-  emptyStateContainer: {
-    flex: 1,
-  },
-  emptyScrollContent: {
-    flexGrow: 1,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: wp(8),
-    paddingVertical: hp(8),
-  },
-  emptyStateTitle: {
-    fontSize: 22,
-    fontFamily: 'Raleway_700Bold',
-    color: '#202020',
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    fontSize: 15,
-    fontFamily: 'Raleway_400Regular',
-    color: '#999',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  clearFiltersButton: {
-    marginTop: 24,
-    backgroundColor: '#00BC7D',
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 12,
-    shadowColor: '#00BC7D',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  clearFiltersText: {
-    fontSize: 15,
-    fontFamily: 'Raleway_700Bold',
-    color: '#FFFFFF',
-  },
-  gridListContent: {
-    paddingHorizontal: wp(2),
-    paddingBottom: hp(2),
-    backgroundColor: '#FFFFFF',
-  },
-  gridItemContainer: {
-    flex: 1,
-    margin: wp(1.5),
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  gridImageContainer: {
-    width: '100%',
-    height: Dimensions.get('window').width / 2 - wp(5),
-    position: 'relative',
-    backgroundColor: '#F8F9FA',
-  },
-  itemImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '30%',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  saleBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: '#FF3333',
-    shadowColor: '#FF3333',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  saleText: {
-    fontSize: 11,
-    fontFamily: 'Raleway_700Bold',
-    color: '#FFFFFF',
-  },
-  productInfoContainer: {
-    padding: 12,
-  },
-  gridItemDescription: {
-    fontSize: 13,
-    fontFamily: 'Raleway_600SemiBold',
-    color: '#202020',
-    minHeight: 38,
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  priceContainer: {
-    marginTop: 4,
-  },
-  gridItemPrice: {
-    fontSize: 18,
-    fontFamily: 'Raleway_700Bold',
-    color: '#00BC7D',
-  },
-  gridDiscountedPrice: {
-    fontSize: 18,
-    fontFamily: 'Raleway_700Bold',
-    color: '#00BC7D',
-    marginBottom: 4,
-  },
-  realPriceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  gridRealPrice: {
-    fontSize: 13,
-    fontFamily: 'Raleway_600SemiBold',
-    color: '#999',
-    textDecorationLine: 'line-through',
-  },
-  discountBadge: {
-    backgroundColor: '#FFE6E6',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  gridDiscountPercentage: {
-    fontSize: 11,
-    fontFamily: 'Raleway_700Bold',
-    color: '#FF0000',
-  },
-});
+export default StoreDetails;

@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import ShopHeader from '../../components/ShopHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { IoLockClosed, IoCheckmarkCircle, IoTime, IoGift } from 'react-icons/io5';
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: white;
+  background: linear-gradient(to bottom, #FAFAFA 0%, #FFFFFF 100%);
   padding-top: 80px;
   padding-bottom: 60px;
 `;
@@ -24,21 +25,30 @@ const Container = styled.div`
 
 const Header = styled.div`
   margin-bottom: 32px;
+  text-align: center;
 `;
 
 const Title = styled.h1`
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 800;
   font-family: 'Raleway', sans-serif;
-  line-height: 36px;
-  color: #202020;
+  color: #000;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+`;
+
+const Subtitle = styled.p`
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Raleway', sans-serif;
+  color: #666;
   margin: 0;
 `;
 
 const ButtonContainer = styled.div`
   display: flex;
   gap: 16px;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
   justify-content: center;
 
   @media (max-width: 768px) {
@@ -47,20 +57,22 @@ const ButtonContainer = styled.div`
 `;
 
 const TabButton = styled.button`
-  padding: 12px 32px;
-  border-radius: 18px;
-  border: none;
-  font-size: 15px;
-  font-weight: 500;
+  padding: 14px 36px;
+  border-radius: 14px;
+  border: 2px solid ${props => props.$active ? '#00BC7D' : '#E8E8E8'};
+  font-size: 16px;
+  font-weight: 600;
   font-family: 'Raleway', sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: ${props => props.active ? '#D0FAE5' : '#F9F9F9'};
-  color: ${props => props.active ? '#00BC7D' : '#000'};
+  background: ${props => props.$active ? 'linear-gradient(135deg, #D0FAE5 0%, #B8F5D8 100%)' : 'white'};
+  color: ${props => props.$active ? '#00BC7D' : '#666'};
+  box-shadow: ${props => props.$active ? '0 4px 12px rgba(0, 188, 125, 0.2)' : 'none'};
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-color: #00BC7D;
   }
 
   &:active {
@@ -83,7 +95,7 @@ const NoItemsText = styled.p`
   color: #666;
   font-family: 'Raleway', sans-serif;
   text-align: center;
-  padding: 40px 0;
+  padding: 60px 20px;
 `;
 
 const VoucherContainer = styled.div`
@@ -94,22 +106,49 @@ const VoucherContainer = styled.div`
 const VoucherCard = styled.div`
   position: relative;
   display: flex;
-  background: ${props => props.expiringSoon ? '#FFEBEB' : 'white'};
-  border: 1px solid ${props => props.expiringSoon ? '#F2B8B8' : '#00BC7D'};
-  border-radius: 10px;
-  padding: 24px;
-  min-height: 140px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+  background: ${props => props.$expiringSoon 
+    ? 'linear-gradient(135deg, #FFF5F5 0%, #FFE8E8 100%)' 
+    : props.$isLocked 
+    ? 'linear-gradient(135deg, #F5F5F5 0%, #ECECEC 100%)'
+    : 'linear-gradient(135deg, #FFFFFF 0%, #F9F9F9 100%)'};
+  border: 2px solid ${props => props.$expiringSoon ? '#FFD4D4' : props.$isLocked ? '#CCCCCC' : '#00BC7D'};
+  border-radius: 16px;
+  padding: 28px;
+  min-height: 160px;
+  box-shadow: 0 4px 16px ${props => props.$expiringSoon 
+    ? 'rgba(255, 77, 79, 0.1)' 
+    : props.$isLocked
+    ? 'rgba(0, 0, 0, 0.05)'
+    : 'rgba(0, 188, 125, 0.1)'};
   transition: all 0.3s ease;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: ${props => props.$expiringSoon 
+      ? 'linear-gradient(90deg, #FF4D4F 0%, #FF7875 100%)' 
+      : props.$isLocked
+      ? 'linear-gradient(90deg, #999 0%, #CCC 100%)'
+      : 'linear-gradient(90deg, #00BC7D 0%, #00E89D 100%)'};
+  }
 
   &:hover {
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 24px ${props => props.$expiringSoon 
+      ? 'rgba(255, 77, 79, 0.15)' 
+      : props.$isLocked
+      ? 'rgba(0, 0, 0, 0.08)'
+      : 'rgba(0, 188, 125, 0.15)'};
+    transform: ${props => props.$isLocked ? 'none' : 'translateY(-2px)'};
   }
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
   }
 `;
 
@@ -121,7 +160,7 @@ const LeftCircle = styled.div`
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #F9F9F9;
+  background: #FAFAFA;
   z-index: 1;
 `;
 
@@ -132,7 +171,7 @@ const LeftCircleBorder = styled.div`
   transform: translateY(-50%);
   width: 20px;
   height: 24px;
-  border: 1px solid ${props => props.expiringSoon ? '#F2B8B8' : '#00BC7D'};
+  border: 2px solid ${props => props.$expiringSoon ? '#FFD4D4' : props.$isLocked ? '#CCCCCC' : '#00BC7D'};
   border-left: none;
   border-radius: 0 10px 10px 0;
   background: white;
@@ -147,7 +186,7 @@ const RightCircle = styled.div`
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #F9F9F9;
+  background: #FAFAFA;
   z-index: 1;
 `;
 
@@ -158,7 +197,7 @@ const RightCircleBorder = styled.div`
   transform: translateY(-50%);
   width: 20px;
   height: 24px;
-  border: 1px solid ${props => props.expiringSoon ? '#F2B8B8' : '#00BC7D'};
+  border: 2px solid ${props => props.$expiringSoon ? '#FFD4D4' : props.$isLocked ? '#CCCCCC' : '#00BC7D'};
   border-right: none;
   border-radius: 10px 0 0 10px;
   background: white;
@@ -167,8 +206,8 @@ const RightCircleBorder = styled.div`
 
 const DashedLine = styled.div`
   position: absolute;
-  left: 20px;   /* offset from left circle */
-  right: 20px;  /* offset from right circle */
+  left: 20px;
+  right: 20px;
   top: 50%;
   height: 1px;
   display: flex;
@@ -180,40 +219,81 @@ const DashedLine = styled.div`
     position: absolute;
     width: 100%;
     height: 1px;
-    background-image: linear-gradient(to right, ${props => props.expiringSoon ? '#F2B8B8' : '#00BC7D'} 60%, transparent 60%);
+    background-image: linear-gradient(to right, ${props => props.$expiringSoon ? '#FFD4D4' : props.$isLocked ? '#CCCCCC' : '#00BC7D'} 60%, transparent 60%);
     background-size: 8px 1px;
     background-repeat: repeat-x;
   }
 `;
 
-
 const VoucherLeft = styled.div`
   flex: 1;
   padding-right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const VoucherHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const VoucherIconWrapper = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: ${props => props.$expiringSoon 
+    ? '#FFE8E8' 
+    : props.$isLocked 
+    ? '#E8E8E8'
+    : '#D0FAE5'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    font-size: 24px;
+    color: ${props => props.$expiringSoon ? '#FF4D4F' : props.$isLocked ? '#999' : '#00BC7D'};
+  }
 `;
 
 const VoucherLabel = styled.span`
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: ${props => props.expiringSoon ? '#D97474' : '#00BC7D'};
+  color: ${props => props.$expiringSoon ? '#D32F2F' : props.$isLocked ? '#999' : '#00BC7D'};
   font-family: 'Raleway', sans-serif;
-  display: block;
-  margin-bottom: 8px;
 `;
 
 const VoucherTitle = styled.h3`
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   font-family: 'Raleway', sans-serif;
-  color: #202020;
-  margin: 0 0 8px 0;
+  color: ${props => props.$isLocked ? '#999' : '#202020'};
+  margin: 0;
 `;
 
 const VoucherDiscount = styled.p`
-  font-size: 14px;
-  color: #666;
+  font-size: 15px;
+  color: ${props => props.$isLocked ? '#BBB' : '#666'};
   font-family: 'Raleway', sans-serif;
   margin: 0;
+  font-weight: 500;
+`;
+
+const LockMessage = styled.p`
+  font-size: 13px;
+  color: #999;
+  font-family: 'Raleway', sans-serif;
+  margin: 8px 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-style: italic;
+
+  svg {
+    font-size: 14px;
+  }
 `;
 
 const VoucherRight = styled.div`
@@ -222,63 +302,94 @@ const VoucherRight = styled.div`
   align-items: flex-end;
   justify-content: space-between;
   position: relative;
+  min-width: 180px;
 
   @media (max-width: 768px) {
     align-items: flex-start;
+    width: 100%;
   }
 `;
 
-const DaysLeftText = styled.span`
-  font-size: 11px;
-  color: #D97474;
+const DaysLeftBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: ${props => props.$expiringSoon ? '#FF4D4F' : '#00BC7D'};
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
   font-family: 'Raleway', sans-serif;
-  position: absolute;
-  top: -30px;
-  right: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+  svg {
+    font-size: 14px;
+  }
 `;
 
 const ValidityContainer = styled.div`
-  background: ${props => props.expiringSoon ? '#F2B8B8' : '#F9F9F9'};
-  border-radius: 4px;
-  padding: 4px 8px;
-  margin-bottom: 8px;
+  background: ${props => props.$expiringSoon ? '#FFE8E8' : '#F0FDF9'};
+  border: 2px solid ${props => props.$expiringSoon ? '#FFD4D4' : '#D0FAE5'};
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin: 8px 0;
 `;
 
 const ValidityText = styled.span`
-  font-size: 11px;
-  font-weight: 500;
-  color: #000;
+  font-size: 13px;
+  font-weight: 600;
+  color: ${props => props.$expiringSoon ? '#D32F2F' : '#00BC7D'};
   font-family: 'Raleway', sans-serif;
 `;
 
 const CollectButton = styled.button`
-  background: ${props => props.disabled ? '#CCCCCC' : '#00BC7D'};
+  background: ${props => props.disabled 
+    ? '#CCCCCC' 
+    : props.$isUsed 
+    ? '#666'
+    : 'linear-gradient(135deg, #00BC7D 0%, #00A66A 100%)'};
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
   font-family: 'Raleway', sans-serif;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.3s ease;
-  position: absolute;
-  bottom: 0;
-  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: ${props => props.disabled ? 'none' : '0 4px 12px rgba(0, 188, 125, 0.3)'};
 
   &:hover {
-    background: ${props => props.disabled ? '#CCCCCC' : '#00A66A'};
+    background: ${props => props.disabled 
+      ? '#CCCCCC' 
+      : props.$isUsed
+      ? '#666'
+      : 'linear-gradient(135deg, #00A66A 0%, #008F5A 100%)'};
     transform: ${props => props.disabled ? 'none' : 'translateY(-2px)'};
+    box-shadow: ${props => props.disabled ? 'none' : '0 6px 16px rgba(0, 188, 125, 0.4)'};
   }
 
   &:active {
-    transform: translateY(0);
+    transform: ${props => props.disabled ? 'none' : 'translateY(0)'};
+  }
+
+  svg {
+    font-size: 18px;
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
   }
 `;
 
 const ProgressGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 32px;
   padding-bottom: 40px;
 
@@ -293,51 +404,83 @@ const ProgressItem = styled.div`
   flex-direction: column;
   align-items: center;
   text-align: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F9F9F9 100%);
+  border-radius: 16px;
+  border: 2px solid #E8E8E8;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border-color: #00BC7D;
+  }
 `;
 
 const IconContainer = styled.div`
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: white;
+  background: linear-gradient(135deg, #D0FAE5 0%, #B8F5D8 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 16px;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.16);
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0, 188, 125, 0.2);
 `;
 
 const VoucherImage = styled.div`
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  border: 2px solid #00BC7D;
+  border: 3px solid #00BC7D;
   display: flex;
   justify-content: center;
   align-items: center;
   background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 `;
 
 const VoucherIcon = styled.img`
-  width: 23px;
-  height: 23px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
 `;
 
 const ProgressTitle = styled.h4`
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   font-family: 'Raleway', sans-serif;
   color: #202020;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
 `;
 
 const ProgressDescription = styled.p`
-  font-size: 11px;
-  color: #000;
+  font-size: 13px;
+  color: #666;
   font-family: 'Raleway', sans-serif;
   line-height: 1.6;
   margin: 0;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+`;
+
+const Spinner = styled.div`
+  width: 48px;
+  height: 48px;
+  border: 4px solid #E0E0E0;
+  border-top: 4px solid #00BC7D;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 `;
 
 const Vouchers = () => {
@@ -348,13 +491,52 @@ const Vouchers = () => {
   const [progressVouchers, setProgressVouchers] = useState([]);
   const [activeVouchers, setActiveVouchers] = useState([]);
   const [userRewards, setUserRewards] = useState([]);
+  const [hasFirstPurchase, setHasFirstPurchase] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Check if user has made their first purchase
+  const checkFirstPurchase = async (userId) => {
+    try {
+      console.log('🔍 Checking first purchase for user:', userId);
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id, user_id, status')
+        .eq('user_id', userId)
+        .eq('status', 'succeeded')
+        .limit(1);
+      
+      if (error) {
+        console.error('❌ Error checking first purchase:', error);
+        return false;
+      }
+      
+      console.log('📦 Orders data:', data);
+      console.log('✅ Has first purchase:', data && data.length > 0);
+      
+      return data && data.length > 0;
+    } catch (error) {
+      console.error('❌ Error in checkFirstPurchase:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     const fetchVouchers = async () => {
       if (!profile) {
-        console.log('No profile available');
+        console.log('⚠️ No profile available');
+        setLoading(false);
         return;
       }
+
+      console.log('🚀 Starting fetchVouchers for profile:', profile.id);
+      setLoading(true);
+
+      // Check first purchase status
+      const purchaseStatus = await checkFirstPurchase(profile.id);
+      console.log('💳 Purchase status on mount:', purchaseStatus);
+      setHasFirstPurchase(purchaseStatus);
+      console.log('🔄 State updated - hasFirstPurchase set to:', purchaseStatus);
 
       const { data: progressRewardsData, error: progressRewardsError } = await supabase
         .from('rewards')
@@ -362,6 +544,7 @@ const Vouchers = () => {
 
       if (progressRewardsError) {
         console.error('Error fetching progress rewards:', progressRewardsError.message);
+        setLoading(false);
         return;
       }
 
@@ -372,6 +555,7 @@ const Vouchers = () => {
 
       if (activeRewardsError) {
         console.error('Error fetching active rewards:', activeRewardsError.message);
+        setLoading(false);
         return;
       }
 
@@ -382,6 +566,7 @@ const Vouchers = () => {
 
       if (userRewardsError) {
         console.error('Error fetching user rewards:', userRewardsError.message);
+        setLoading(false);
         return;
       }
 
@@ -415,36 +600,68 @@ const Vouchers = () => {
 
       setProgressVouchers(mergedProgressVouchers);
       setActiveVouchers(mergedActiveVouchers);
+      setLoading(false);
     };
 
     fetchVouchers();
   }, [profile]);
 
   const handleCollectPress = async (voucherId) => {
+    console.log('🎁 handleCollectPress called for voucher:', voucherId);
+    
     const voucher = activeVouchers.find(v => v.id === voucherId);
+    console.log('📋 Voucher found:', voucher);
+    
     if (!voucher || voucher.isCollected) {
+      console.log('⚠️ Voucher already collected or not found');
       return;
     }
+
+    console.log('🔍 Re-checking purchase status for user:', profile.id);
+    
+    // Re-check if user has made their first purchase (in real-time)
+    const currentPurchaseStatus = await checkFirstPurchase(profile.id);
+    console.log('💳 Current purchase status:', currentPurchaseStatus);
+    
+    if (!currentPurchaseStatus) {
+      console.log('❌ User has not made first purchase yet');
+      alert('You need to complete your first purchase to collect this voucher!');
+      return;
+    }
+    
+    console.log('✅ User has made first purchase, proceeding with collection');
+    
+    // Update the state for UI consistency
+    setHasFirstPurchase(true);
 
     const collectionDate = new Date();
     const validityDate = new Date(collectionDate);
     validityDate.setDate(collectionDate.getDate() + 7);
 
+    console.log('📅 Collection date:', collectionDate.toISOString());
+    console.log('📅 Validity date:', validityDate.toISOString().split('T')[0]);
+
+    const upsertData = {
+      user_id: profile.id,
+      reward_id: voucherId,
+      is_collected: true,
+      collected_at: collectionDate.toISOString(),
+      validity: validityDate.toISOString().split('T')[0],
+    };
+    
+    console.log('💾 Upserting data:', upsertData);
+
     const { error } = await supabase
       .from('user_rewards')
-      .upsert({
-        user_id: profile.id,
-        reward_id: voucherId,
-        is_collected: true,
-        collected_at: collectionDate.toISOString(),
-        validity: validityDate.toISOString().split('T')[0],
-      }, { onConflict: ['user_id', 'reward_id'] });
+      .upsert(upsertData, { onConflict: ['user_id', 'reward_id'] });
 
     if (error) {
-      console.error('Error collecting voucher:', error.message);
+      console.error('❌ Error collecting voucher:', error);
       alert('Failed to collect voucher. Please try again.');
       return;
     }
+
+    console.log('✅ Voucher collected successfully in database');
 
     const newUserReward = {
       user_id: profile.id,
@@ -460,7 +677,9 @@ const Vouchers = () => {
     ));
     setUserRewards([...userRewards, newUserReward]);
     setSelectedButton('Active Rewards');
-    alert('Voucher collected successfully!');
+    
+    console.log('✅ State updated, voucher collection complete');
+    alert('Voucher collected successfully! Valid for 7 days.');
   };
 
   const getExpiryInfo = (validity) => {
@@ -474,43 +693,96 @@ const Vouchers = () => {
 
   const formatValidityDate = (validity) => {
     const date = new Date(validity);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const year = date.getFullYear().toString().slice(-2);
-    return `${month}.${day}.${year}`;
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
   };
 
   const renderActiveReward = (voucher) => {
     const { expiringSoon, daysLeft } = getExpiryInfo(voucher.validity);
-    const isExpired = daysLeft < 0;
+    // Only consider expired if the voucher has been collected
+    const isExpired = voucher.isCollected && daysLeft < 0;
+    const isLocked = !hasFirstPurchase && !voucher.isCollected;
+
+    console.log(`🎫 Rendering voucher ${voucher.id}:`, {
+      hasFirstPurchase,
+      isCollected: voucher.isCollected,
+      isLocked,
+      isExpired,
+      daysLeft,
+      validity: voucher.validity
+    });
 
     return (
       <VoucherContainer key={voucher.id}>
         <LeftCircle />
-        <LeftCircleBorder expiringSoon={expiringSoon} />
+        <LeftCircleBorder $expiringSoon={expiringSoon} $isLocked={isLocked} />
         <RightCircle />
-        <RightCircleBorder expiringSoon={expiringSoon} />
-        <DashedLine expiringSoon={expiringSoon} />
-        <VoucherCard expiringSoon={expiringSoon}>
+        <RightCircleBorder $expiringSoon={expiringSoon} $isLocked={isLocked} />
+        <DashedLine $expiringSoon={expiringSoon} $isLocked={isLocked} />
+        <VoucherCard $expiringSoon={expiringSoon} $isLocked={isLocked}>
           <VoucherLeft>
-            <VoucherLabel expiringSoon={expiringSoon}>Voucher</VoucherLabel>
-            <VoucherTitle>{voucher.title}</VoucherTitle>
-            <VoucherDiscount>{voucher.discount}</VoucherDiscount>
+            <VoucherHeader>
+              <VoucherIconWrapper $expiringSoon={expiringSoon} $isLocked={isLocked}>
+                {isLocked ? <IoLockClosed /> : <IoGift />}
+              </VoucherIconWrapper>
+              <VoucherLabel $expiringSoon={expiringSoon} $isLocked={isLocked}>
+                {isLocked ? 'Locked Voucher' : 'Voucher'}
+              </VoucherLabel>
+            </VoucherHeader>
+            <VoucherTitle $isLocked={isLocked}>{voucher.title}</VoucherTitle>
+            <VoucherDiscount $isLocked={isLocked}>{voucher.discount}</VoucherDiscount>
+            {isLocked && (
+              <LockMessage>
+                <IoLockClosed />
+                Complete your first purchase to unlock
+              </LockMessage>
+            )}
           </VoucherLeft>
           <VoucherRight>
-            {expiringSoon && !isExpired && (
-              <DaysLeftText>{daysLeft} Days Left</DaysLeftText>
+            {expiringSoon && !isExpired && voucher.isCollected && (
+              <DaysLeftBadge $expiringSoon={expiringSoon}>
+                <IoTime />
+                {daysLeft} {daysLeft === 1 ? 'Day' : 'Days'} Left
+              </DaysLeftBadge>
             )}
-            <ValidityContainer expiringSoon={expiringSoon}>
-              <ValidityText>Valid until {formatValidityDate(voucher.validity)}</ValidityText>
-            </ValidityContainer>
+            {!isLocked && voucher.isCollected && (
+              <ValidityContainer $expiringSoon={expiringSoon}>
+                <ValidityText $expiringSoon={expiringSoon}>
+                  Valid until {formatValidityDate(voucher.validity)}
+                </ValidityText>
+              </ValidityContainer>
+            )}
             <CollectButton
-              onClick={() => !voucher.isCollected && handleCollectPress(voucher.id)}
-              disabled={voucher.isCollected || isExpired}
+              onClick={() => !voucher.isCollected && !isLocked && handleCollectPress(voucher.id)}
+              disabled={voucher.isCollected || isExpired || isLocked}
+              $isUsed={voucher.isUsed}
             >
-              {voucher.isCollected
-                ? (voucher.isUsed ? 'Used' : 'Use')
-                : 'Collect'}
+              {isLocked ? (
+                <>
+                  <IoLockClosed />
+                  Locked
+                </>
+              ) : voucher.isCollected ? (
+                voucher.isUsed ? (
+                  <>
+                    <IoCheckmarkCircle />
+                    Used
+                  </>
+                ) : (
+                  <>
+                    <IoCheckmarkCircle />
+                    Collected
+                  </>
+                )
+              ) : (
+                <>
+                  <IoGift />
+                  Collect Now
+                </>
+              )}
             </CollectButton>
           </VoucherRight>
         </VoucherCard>
@@ -536,6 +808,25 @@ const Vouchers = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <PageContainer>
+        <ShopHeader
+          isConnected={!!user}
+          avatarUrl={profile?.avatar_url}
+          userRole={profile?.role}
+          userEmail={profile?.email || user?.email}
+          onLogout={logout}
+        />
+        <Container>
+          <LoadingContainer>
+            <Spinner />
+          </LoadingContainer>
+        </Container>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer>
       <ShopHeader
@@ -547,18 +838,33 @@ const Vouchers = () => {
       />
       <Container>
         <Header>
-          <Title>Vouchers</Title>
+          <Title>My Vouchers</Title>
+          <Subtitle>Collect and use your exclusive rewards</Subtitle>
         </Header>
+
+        {/* Debug info */}
+        <div style={{ background: '#f0f0f0', padding: '10px', marginBottom: '20px', borderRadius: '8px' }}>
+          <strong>Debug Info:</strong><br/>
+          Profile ID: {profile?.id}<br/>
+          Has First Purchase: {hasFirstPurchase ? '✅ Yes' : '❌ No'}<br/>
+          Active Vouchers Count: {activeVouchers.length}<br/>
+          {activeVouchers.map(v => (
+            <div key={v.id}>
+              Voucher {v.id}: isCollected={v.isCollected ? 'Yes' : 'No'}, 
+              isLocked={(!hasFirstPurchase && !v.isCollected) ? 'Yes' : 'No'}
+            </div>
+          ))}
+        </div>
 
         <ButtonContainer>
           <TabButton
-            active={selectedButton === 'Active Rewards'}
+            $active={selectedButton === 'Active Rewards'}
             onClick={() => setSelectedButton('Active Rewards')}
           >
             Active Rewards
           </TabButton>
           <TabButton
-            active={selectedButton === 'Milestones'}
+            $active={selectedButton === 'Milestones'}
             onClick={() => setSelectedButton('Milestones')}
           >
             Milestones
@@ -578,7 +884,7 @@ const Vouchers = () => {
                 {progressVouchers.map(item => renderProgressItem(item))}
               </ProgressGrid>
             ) : (
-              <NoItemsText>No vouchers available</NoItemsText>
+              <NoItemsText>No milestones available</NoItemsText>
             )
           )}
         </Content>

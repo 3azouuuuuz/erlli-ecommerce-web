@@ -28,7 +28,7 @@ import Payment from './Payment.jsx';
 import Orders from './Orders.jsx';
 import CustomerOrderDetails from './CustomerOrderDetails.jsx';
 import SupportChat from './SupportChat.jsx';
-import StoreDetail from './StoreDetails.jsx'
+import StoreDetails from './StoreDetails.jsx'
 // Styled Components (unchanged)
 const FloatingCartButton = styled.button`
   position: fixed;
@@ -131,7 +131,7 @@ function CustomerLayout() {
         <Route path="Orders" element={<Orders />} />
         <Route path="CustomerOrderDetails" element={<CustomerOrderDetails />} />
         <Route path="SupportChat" element={<SupportChat />} />
-        <Route path='StoreDetail' element={<StoreDetail/>} />
+        <Route path='StoreDetails' element={<StoreDetails/>} />
       </Routes>
 
       
