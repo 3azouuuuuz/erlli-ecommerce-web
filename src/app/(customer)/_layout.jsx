@@ -26,10 +26,13 @@ import CartDrawerComponent from '../../components/CartDrawer';
 import Vouchers from './Vouchers.jsx';
 import Payment from './Payment.jsx';
 import Orders from './Orders.jsx';
+import FailedOrders from './FailedOrders.jsx';
+import ToReview from './ToReview.jsx';
 import CustomerOrderDetails from './CustomerOrderDetails.jsx';
 import SupportChat from './SupportChat.jsx';
-import StoreDetails from './StoreDetails.jsx'
-// Styled Components (unchanged)
+import StoreDetails from './StoreDetails.jsx';
+
+// Styled Components
 const FloatingCartButton = styled.button`
   position: fixed;
   bottom: 32px;
@@ -46,10 +49,12 @@ const FloatingCartButton = styled.button`
   cursor: pointer;
   z-index: 1000;
   transition: all 0.3s ease;
+  
   &:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 188, 125, 0.4);
   }
+  
   @media (max-width: 768px) {
     bottom: 16px;
     right: 16px;
@@ -61,6 +66,7 @@ const FloatingCartButton = styled.button`
 const CartIcon = styled(IoCartOutline)`
   color: white;
   font-size: 28px;
+  
   @media (max-width: 768px) {
     font-size: 24px;
   }
@@ -81,6 +87,7 @@ const CartBadge = styled.span`
   font-size: 12px;
   font-weight: 600;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  
   @media (max-width: 768px) {
     width: 20px;
     height: 20px;
@@ -93,6 +100,7 @@ const CartBadge = styled.span`
 // Cart Button Component
 const CartButtonWrapper = () => {
   const { toggleCart, itemCount } = useCart();
+  
   return (
     <FloatingCartButton onClick={toggleCart}>
       <CartIcon />
@@ -131,9 +139,10 @@ function CustomerLayout() {
         <Route path="Orders" element={<Orders />} />
         <Route path="CustomerOrderDetails" element={<CustomerOrderDetails />} />
         <Route path="SupportChat" element={<SupportChat />} />
-        <Route path='StoreDetails' element={<StoreDetails/>} />
+        <Route path="StoreDetails" element={<StoreDetails />} />
+        <Route path="FailedOrders" element={<FailedOrders />} />
+        <Route path="ToReview" element={<ToReview />} />
       </Routes>
-
       
       {!isSupportChat && (
         <>

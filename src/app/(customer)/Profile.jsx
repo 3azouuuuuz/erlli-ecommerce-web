@@ -659,7 +659,7 @@ const Profile = () => {
   };
 
   const handleToReviewPress = () => {
-    navigate('/toReview');
+    navigate('/ToReview');
   };
 
   const handleFailedPress = () => {
