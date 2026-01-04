@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { IoClose, IoTrash, IoCartOutline, IoHeartOutline } from 'react-icons/io5';
 import { useCart } from '../contexts/CartContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const CartDrawerOverlay = styled.div`
   position: fixed;
@@ -29,7 +31,6 @@ const CartDrawer = styled.div`
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;
-
   @media (max-width: 768px) {
     width: 100vw;
     right: ${props => (props.isOpen ? '0' : '-100vw')};
@@ -49,6 +50,7 @@ const CartTitle = styled.h2`
   font-weight: 700;
   color: #1a1a2e;
   margin: 0;
+  font-family: 'Raleway', sans-serif;
 `;
 
 const CloseButton = styled.button`
@@ -59,10 +61,7 @@ const CloseButton = styled.button`
   cursor: pointer;
   padding: 0;
   transition: color 0.3s ease;
-
-  &:hover {
-    color: #1a1a2e;
-  }
+  &:hover { color: #1a1a2e; }
 `;
 
 const TabContainer = styled.div`
@@ -76,19 +75,17 @@ const TabButton = styled.button`
   background: none;
   border: none;
   font-size: 16px;
+  font-family: 'Raleway', sans-serif;
   font-weight: ${props => (props.active ? '700' : '500')};
   color: ${props => (props.active ? '#00BC7D' : '#666')};
   border-bottom: 3px solid ${props => (props.active ? '#00BC7D' : 'transparent')};
   cursor: pointer;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-
-  &:hover {
-    color: #00BC7D;
-  }
+  transition: color 0.3s ease;
+  &:hover { color: #00BC7D; }
 `;
 
 const TabContent = styled.div`
@@ -122,6 +119,7 @@ const WishlistItem = styled.div`
   padding: 16px 0;
   border-bottom: 1px solid #f0f0f0;
   background: ${props => props.addedToCart ? '#f0f8f0' : 'white'};
+  transition: background 0.3s ease;
 `;
 
 const ItemImage = styled.img`
@@ -139,15 +137,14 @@ const ItemName = styled.div`
   font-weight: 600;
   color: #1a1a2e;
   margin-bottom: 4px;
+  font-family: 'Raleway', sans-serif;
+  font-size: 14px;
 `;
 
 const ItemPrice = styled.div`
   color: #00BC7D;
   font-weight: 600;
-`;
-
-const WishlistPrice = styled.div`
-  color: #666;
+  font-family: 'Raleway', sans-serif;
   font-size: 14px;
 `;
 
@@ -157,12 +154,8 @@ const RemoveItemButton = styled.button`
   color: #999;
   cursor: pointer;
   padding: 4px;
-  border-radius: 4px;
-  transition: color 0.3s ease;
-
-  &:hover {
-    color: #f5576c;
-  }
+  transition: color 0.2s ease;
+  &:hover { color: #f5576c; }
 `;
 
 const AddToCartButton = styled.button`
@@ -172,23 +165,27 @@ const AddToCartButton = styled.button`
   border: none;
   border-radius: 6px;
   font-size: 12px;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover:not(:disabled) {
+  margin-top: 8px;
+  transition: all 0.2s ease;
+  &:hover:not(:disabled) { 
     background: #00A66A;
+    transform: translateY(-2px);
   }
-
-  &:disabled {
-    background: #ccc;
-    cursor: not-allowed;
+  &:disabled { 
+    background: #ccc; 
+    cursor: not-allowed; 
   }
 `;
 
 const AddedToCartMessage = styled.div`
   color: #00BC7D;
   font-size: 12px;
+  font-family: 'Raleway', sans-serif;
   margin-top: 4px;
+  font-weight: 500;
 `;
 
 const CartFooter = styled.div`
@@ -200,6 +197,7 @@ const CartFooter = styled.div`
 const Total = styled.div`
   font-size: 18px;
   font-weight: 700;
+  font-family: 'Raleway', sans-serif;
   color: #1a1a2e;
   text-align: right;
   margin-bottom: 16px;
@@ -214,18 +212,30 @@ const CheckoutButton = styled.button`
   border-radius: 12px;
   font-weight: 600;
   font-size: 16px;
+  font-family: 'Raleway', sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
-
   &:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
   }
-
-  &:disabled {
-    background: #ccc;
+  &:disabled { 
+    background: #ccc; 
     cursor: not-allowed;
+    opacity: 0.6;
   }
+`;
+
+const EmptyMessage = styled.p`
+  font-size: 16px;
+  font-family: 'Raleway', sans-serif;
+  margin-bottom: 20px;
+  color: #666;
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 48px;
+  margin-bottom: 16px;
 `;
 
 const EmptyCart = styled.div`
@@ -240,54 +250,94 @@ const EmptyWishlist = styled.div`
   color: #666;
 `;
 
-const EmptyMessage = styled.p`
-  font-size: 16px;
-  margin-bottom: 20px;
-`;
-
-const EmptyIcon = styled.div`
-  font-size: 48px;
-  margin-bottom: 16px;
-`;
-
-const LoadingSpinner = styled.div`
-  width: 24px;
-  height: 24px;
-  border: 2px solid #e0e0e0;
-  border-top: 2px solid #00BC7D;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 20px auto;
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+const LoadingPrices = styled.div`
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-family: 'Raleway', sans-serif;
 `;
 
 const CartDrawerComponent = () => {
   const [activeTab, setActiveTab] = useState('cart');
   const [addedToCartItems, setAddedToCartItems] = useState(new Set());
-  const { 
-    cartItems, 
-    removeFromCart, 
-    itemCount, 
-    isCartOpen, 
-    toggleCart, 
-    wishlistItems, 
-    removeFromWishlist, 
+  const { t } = useTranslation();
+
+  const { formatCurrency } = useCurrency();
+  const {
+    cartItems,
+    removeFromCart,
+    itemCount,
+    isCartOpen,
+    toggleCart,
+    wishlistItems,
+    removeFromWishlist,
     wishlistCount,
-    addToCart 
+    addToCart
   } = useCart();
+
   const navigate = useNavigate();
 
-  // FORCE INSTANT REFRESH when drawer opens
+  // States for converted prices
+  const [displayCartItems, setDisplayCartItems] = useState([]);
+  const [displayWishlistItems, setDisplayWishlistItems] = useState([]);
+  const [displayTotal, setDisplayTotal] = useState('...');
+  const [pricesReady, setPricesReady] = useState(false);
+
+  // Convert prices safely without crashing React
+  useEffect(() => {
+    let canceled = false;
+
+    const convertItems = async () => {
+      if (cartItems.length === 0 && wishlistItems.length === 0) {
+        if (!canceled) {
+          setDisplayCartItems([]);
+          setDisplayWishlistItems([]);
+          setPricesReady(true);
+        }
+        return;
+      }
+
+      const processItem = async (item) => {
+        const displayPrice = await formatCurrency(item.price);
+        const lineTotal = item.price * (item.quantity || 1);
+        const displayLineTotal = await formatCurrency(lineTotal);
+        return { ...item, displayPrice, displayLineTotal };
+      };
+
+      const [cartConverted, wishlistConverted] = await Promise.all([
+        Promise.all(cartItems.map(processItem)),
+        Promise.all(wishlistItems.map(processItem))
+      ]);
+
+      if (!canceled) {
+        setDisplayCartItems(cartConverted);
+        setDisplayWishlistItems(wishlistConverted);
+        setPricesReady(true);
+      }
+    };
+
+    convertItems();
+
+    return () => { canceled = true; };
+  }, [cartItems, wishlistItems, formatCurrency]);
+
+  // Convert total separately
+  useEffect(() => {
+    if (!pricesReady) return;
+
+    const total = cartItems.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
+    if (total === 0) {
+      setDisplayTotal('0.00');
+      return;
+    }
+
+    formatCurrency(total).then(setDisplayTotal);
+  }, [pricesReady, cartItems, formatCurrency]);
+
+  // Refresh wishlist on open
   useEffect(() => {
     if (isCartOpen) {
-      // Trigger immediate wishlist sync
-      const refreshWishlist = () => {
-        window.dispatchEvent(new Event('wishlistRefresh'));
-      };
-      refreshWishlist();
+      window.dispatchEvent(new Event('wishlistRefresh'));
     }
   }, [isCartOpen]);
 
@@ -296,7 +346,7 @@ const CartDrawerComponent = () => {
     navigate('/Payment');
   };
 
-  const handleAddWishlistToCart = async (wishlistItem) => {
+  const handleAddWishlistToCart = (wishlistItem) => {
     const cartItem = {
       ...wishlistItem,
       quantity: 1,
@@ -304,59 +354,55 @@ const CartDrawerComponent = () => {
       size: null,
       shipping_option: null
     };
-    
     addToCart(cartItem);
     setAddedToCartItems(prev => new Set([...prev, wishlistItem.id]));
-    
-    // Auto-show success message for 3 seconds
+
     setTimeout(() => {
       setAddedToCartItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(wishlistItem.id);
-        return newSet;
+        const next = new Set(prev);
+        next.delete(wishlistItem.id);
+        return next;
       });
     }, 3000);
   };
-
-  const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0).toFixed(2);
 
   return (
     <>
       <CartDrawerOverlay isOpen={isCartOpen} onClick={toggleCart} />
       <CartDrawer isOpen={isCartOpen}>
         <CartHeader>
-          <CartTitle>My Bag ({itemCount + wishlistCount})</CartTitle>
-          <CloseButton onClick={toggleCart}>
-            <IoClose />
-          </CloseButton>
+          <CartTitle>{t('MyBag') || 'My Bag'} ({itemCount + wishlistCount})</CartTitle>
+          <CloseButton onClick={toggleCart}><IoClose /></CloseButton>
         </CartHeader>
 
         <TabContainer>
           <TabButton active={activeTab === 'cart'} onClick={() => setActiveTab('cart')}>
-            <IoCartOutline size={18} />
-            Cart ({itemCount})
+            <IoCartOutline size={18} /> {t('Cart') || 'Cart'} ({itemCount})
           </TabButton>
           <TabButton active={activeTab === 'wishlist'} onClick={() => setActiveTab('wishlist')}>
-            <IoHeartOutline size={18} />
-            Wishlist ({wishlistCount})
+            <IoHeartOutline size={18} /> {t('Wishlist') || 'Wishlist'} ({wishlistCount})
           </TabButton>
         </TabContainer>
 
         <TabContent>
           <ContentSection active={activeTab === 'cart'}>
             <CartItemsList>
-              {cartItems.length === 0 ? (
+              {!pricesReady ? (
+                <LoadingPrices>{t('LoadingPrices') || 'Loading prices'}...</LoadingPrices>
+              ) : displayCartItems.length === 0 ? (
                 <EmptyCart>
                   <EmptyIcon>🛒</EmptyIcon>
-                  <EmptyMessage>Your cart is empty</EmptyMessage>
+                  <EmptyMessage>{t('YourCartIsEmpty') || 'Your cart is empty'}</EmptyMessage>
                 </EmptyCart>
               ) : (
-                cartItems.map((item) => (
+                displayCartItems.map(item => (
                   <CartItem key={`${item.id}-${item.variation_id}-${item.size}`}>
                     <ItemImage src={item.image_url} alt={item.description} />
                     <ItemDetails>
                       <ItemName>{item.description}</ItemName>
-                      <ItemPrice>${item.price.toFixed(2)} x {item.quantity || 1}</ItemPrice>
+                      <ItemPrice>
+                        {item.displayPrice} × {item.quantity || 1} = {item.displayLineTotal}
+                      </ItemPrice>
                     </ItemDetails>
                     <RemoveItemButton onClick={() => removeFromCart(item.id)}>
                       <IoTrash size={20} />
@@ -369,26 +415,28 @@ const CartDrawerComponent = () => {
 
           <ContentSection active={activeTab === 'wishlist'}>
             <WishlistItemsList>
-              {wishlistItems.length === 0 ? (
+              {!pricesReady ? (
+                <LoadingPrices>{t('LoadingPrices') || 'Loading prices'}...</LoadingPrices>
+              ) : displayWishlistItems.length === 0 ? (
                 <EmptyWishlist>
-                  <EmptyIcon>❤️</EmptyIcon>
-                  <EmptyMessage>Your wishlist is empty. Like some products! 😊</EmptyMessage>
+                  <EmptyIcon>💝</EmptyIcon>
+                  <EmptyMessage>{t('YourWishlistIsEmpty') || 'Your wishlist is empty. Like some products!'}</EmptyMessage>
                 </EmptyWishlist>
               ) : (
-                wishlistItems.map((item) => (
+                displayWishlistItems.map(item => (
                   <WishlistItem key={item.id} addedToCart={addedToCartItems.has(item.id)}>
                     <ItemImage src={item.image_url} alt={item.description} />
                     <ItemDetails>
                       <ItemName>{item.description}</ItemName>
-                      <WishlistPrice>${item.price.toFixed(2)}</WishlistPrice>
-                      <AddToCartButton 
+                      <ItemPrice>{item.displayPrice}</ItemPrice>
+                      <AddToCartButton
                         onClick={() => handleAddWishlistToCart(item)}
                         disabled={addedToCartItems.has(item.id)}
                       >
-                        {addedToCartItems.has(item.id) ? 'Added!' : 'Add to Cart'}
+                        {addedToCartItems.has(item.id) ? t('Added') || 'Added!' : t('AddToCart') || 'Add to Cart'}
                       </AddToCartButton>
                       {addedToCartItems.has(item.id) && (
-                        <AddedToCartMessage>✓ Added to Cart!</AddedToCartMessage>
+                        <AddedToCartMessage>{t('AddedToCart') || 'Added to Cart'}!</AddedToCartMessage>
                       )}
                     </ItemDetails>
                     <RemoveItemButton onClick={() => removeFromWishlist(item.id)}>
@@ -402,9 +450,9 @@ const CartDrawerComponent = () => {
         </TabContent>
 
         <CartFooter>
-          <Total>Total: ${cartTotal}</Total>
-          <CheckoutButton onClick={handleCheckout} disabled={cartItems.length === 0}>
-            Checkout
+          <Total>{t('Total') || 'Total'}: {displayTotal}</Total>
+          <CheckoutButton onClick={handleCheckout} disabled={cartItems.length === 0 || !pricesReady}>
+            {t('Checkout') || 'Checkout'}
           </CheckoutButton>
         </CartFooter>
       </CartDrawer>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +9,7 @@ import { supabaseUrl, supabaseAnonKey } from '../../lib/constants';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import ShopHeader from '../../components/ShopHeader';
 import { IoPencil, IoCheckmarkCircle, IoClose, IoChevronDown, IoCardOutline, IoLocationOutline, IoCallOutline, IoCartOutline, IoShieldCheckmarkOutline, IoLockClosedOutline, IoTrash } from 'react-icons/io5';
+import { useTranslation } from 'react-i18next';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -732,8 +734,13 @@ const Payment = () => {
   const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
   const { cartItems, clearCart } = useCart();
+  const { t } = useTranslation();
   const stripe = useStripe();
   const elements = useElements();
+  const { formatCurrency } = useCurrency();
+const [convertedCartItems, setConvertedCartItems] = useState([]);
+const [total, setTotal] = useState(0);
+const [displayTotal, setDisplayTotal] = useState('$0.00');
   const [editingAddress, setEditingAddress] = useState(false);
   const [editingContact, setEditingContact] = useState(false);
   const [editingPayment, setEditingPayment] = useState(false);
@@ -765,6 +772,26 @@ const Payment = () => {
       setPhone(profile.phone || '');
     }
   }, [profile]);
+
+  useEffect(() => {
+  const convertCartPrices = async () => {
+    if (cartItems.length === 0) return;
+    
+    const itemsWithConvertedPrices = await Promise.all(
+      cartItems.map(async (item) => {
+        const displayPrice = await formatCurrency(item.price);
+        return {
+          ...item,
+          displayPrice
+        };
+      })
+    );
+    
+    setConvertedCartItems(itemsWithConvertedPrices);
+  };
+  
+  convertCartPrices();
+}, [cartItems, formatCurrency]);
 
   useEffect(() => {
     const fetchStripeCustomerId = async () => {
@@ -941,23 +968,37 @@ const Payment = () => {
     }
   }, [fetchVendorData, paymentStatus]);
 
-  const calculateTotal = useCallback(() => {
-    return vendorGroups.reduce((sum, group) => {
-      const subtotal = group.items.reduce((total, item) => total + item.price * (item.quantity || 1), 0);
-      let shippingCost = 0;
-      if (group.selectedShippingOption && group.selectedShippingOption.price) {
-        shippingCost = group.selectedShippingOption.price === 'FREE' ? 0 : parseFloat(group.selectedShippingOption.price.replace(/[^0-9.]/g, '')) || 0;
-      }
-      let groupTotal = subtotal + shippingCost;
-      if (selectedVoucher) {
-        const discountPercent = parseFloat(selectedVoucher.discount) || 5;
-        groupTotal *= (1 - discountPercent / 100);
-      }
-      return sum + groupTotal;
-    }, 0);
-  }, [vendorGroups, selectedVoucher]);
+const calculateTotal = useCallback(async () => {
+  let total = 0;
+  for (const group of vendorGroups) {
+    const subtotal = group.items.reduce((total, item) => total + item.price * (item.quantity || 1), 0);
+    let shippingCost = 0;
+    if (group.selectedShippingOption && group.selectedShippingOption.price) {
+      shippingCost = group.selectedShippingOption.price === 'FREE' ? 0 : parseFloat(group.selectedShippingOption.price.replace(/[^0-9.]/g, '')) || 0;
+    }
+    let groupTotal = subtotal + shippingCost;
+    if (selectedVoucher) {
+      const discountPercent = parseFloat(selectedVoucher.discount) || 5;
+      groupTotal *= (1 - discountPercent / 100);
+    }
+    total += groupTotal;
+  }
+  return total;
+}, [vendorGroups, selectedVoucher]);
 
-  const total = calculateTotal();
+
+
+
+  useEffect(() => {
+  const convertTotal = async () => {
+    const totalValue = await calculateTotal();
+    setTotal(totalValue); // Set the numeric total
+    const converted = await formatCurrency(totalValue);
+    setDisplayTotal(converted);
+  };
+  
+  convertTotal();
+}, [vendorGroups, selectedVoucher, formatCurrency, calculateTotal]);
 
   const updateShippingOption = useCallback((vendorId, option) => {
     setVendorGroups(prev =>
@@ -1060,7 +1101,7 @@ const Payment = () => {
       return;
     }
     setShowLoading(true);
-    setLoadingMessage('Processing multiple orders...');
+    setLoadingMessage(t('ProcessingPayment'));
     setLoading(true);
     try {
       let paymentMethodId;
@@ -1173,44 +1214,49 @@ const Payment = () => {
       if (allSucceeded) {
         clearCart();
         setPaymentStatus('success');
-        setLoadingMessage('All orders processed successfully');
+       setLoadingMessage(t('AllOrdersProcessedSuccessfully'));
         setTimeout(() => {
           setShowLoading(false);
           navigate('/Orders');
         }, 2000);
       } else {
-        setLoadingMessage('Some orders failed');
+        setLoadingMessage(t('Failed'));
         setTimeout(() => setShowLoading(false), 2000);
       }
     } catch (error) {
       console.error('Payment error:', error);
-      setLoadingMessage(`Payment failed: ${error.message}`);
+      setLoadingMessage(t('PaymentFailedWithError', { error: error.message }));
       setTimeout(() => setShowLoading(false), 2000);
     } finally {
       setLoading(false);
     }
   };
 
-  if (cartItems.length === 0) {
-    return (
-      <PageContainer>
-        <ShopHeader
-          isConnected={!!user}
-          avatarUrl={profile?.avatar_url}
-          userRole={profile?.role}
-          userEmail={profile?.email || user?.email}
-          onLogout={logout}
-        />
-        <Container>
-          <EmptyCart>
-            <EmptyIcon>🛒</EmptyIcon>
-            <EmptyTitle>Your cart is empty</EmptyTitle>
-            <EmptyText>Add some items to get started</EmptyText>
-          </EmptyCart>
-        </Container>
-      </PageContainer>
-    );
-  }
+  if (cartItems.length === 0 && paymentStatus !== 'success') {
+  return (
+    <PageContainer>
+      <ShopHeader
+        isConnected={!!user}
+        avatarUrl={profile?.avatar_url}
+        userRole={profile?.role}
+        userEmail={profile?.email || user?.email}
+        onLogout={logout}
+      />
+      <Container>
+        <EmptyCart>
+          <EmptyIcon>🛒</EmptyIcon>
+          <EmptyTitle>{t('YourCartIsEmpty')}</EmptyTitle>
+          <EmptyText>{t('Add some items to get started')}</EmptyText>
+        </EmptyCart>
+      </Container>
+    </PageContainer>
+  );
+}
+
+// If payment succeeded and cart is empty, redirect immediately
+if (cartItems.length === 0 && paymentStatus === 'success') {
+  return null; // Don't show anything, already redirecting
+}
 
   return (
     <PageContainer>
@@ -1223,8 +1269,8 @@ const Payment = () => {
       />
       <Container>
         <PageHeader>
-          <PageTitle>Secure Checkout</PageTitle>
-          <PageSubtitle>Complete your purchase securely and safely</PageSubtitle>
+          <PageTitle>{t('SecureCheckout')}</PageTitle>
+          <PageSubtitle>{t('CompletePurchaseSecurely')}</PageSubtitle>
         </PageHeader>
         <Grid>
           <LeftColumn>
@@ -1236,7 +1282,7 @@ const Payment = () => {
                       <SectionIconWrapper>
                         <IoLocationOutline size={24} />
                       </SectionIconWrapper>
-                      <SectionTitle>Shipping Address</SectionTitle>
+                      <SectionTitle>{t('ShippingAddress')}</SectionTitle>
                     </SectionTitleGroup>
                     <EditButton onClick={() => setEditingAddress(true)}>
                       <IoPencil size={20} color="white" />
@@ -1260,28 +1306,28 @@ const Payment = () => {
                   </SectionHeader>
                   <EditForm>
                     <InputGroup>
-                      <Label>Street Address</Label>
+                      <Label>{t('StreetAddress')}</Label>
                       <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main Street" />
                     </InputGroup>
                     <InputGroup>
-                      <Label>City</Label>
+                      <Label>{t('City')}</Label>
                       <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="New York" />
                     </InputGroup>
                     <InputGroup>
-                      <Label>State / Province</Label>
+                      <Label>{t('StateProvince')}</Label>
                       <Input value={state} onChange={(e) => setState(e.target.value)} placeholder="NY" />
                     </InputGroup>
                     <InputGroup>
-                      <Label>Postal Code</Label>
+                      <Label>{t('PostalCode')}</Label>
                       <Input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="10001" />
                     </InputGroup>
                     <InputGroup>
-                      <Label>Country</Label>
+                      <Label>{t('Country')}</Label>
                       <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="United States" />
                     </InputGroup>
                     <ButtonRow>
-                      <CancelButton onClick={() => setEditingAddress(false)}>Cancel</CancelButton>
-                      <SaveButton onClick={handleSaveAddress}>Save Address</SaveButton>
+                      <CancelButton onClick={() => setEditingAddress(false)}>{t('Cancel')}</CancelButton>
+                      <SaveButton onClick={handleSaveAddress}>{t('SaveAddress')}</SaveButton>
                     </ButtonRow>
                   </EditForm>
                 </>
@@ -1295,7 +1341,7 @@ const Payment = () => {
                       <SectionIconWrapper>
                         <IoCallOutline size={24} />
                       </SectionIconWrapper>
-                      <SectionTitle>Contact Information</SectionTitle>
+                      <SectionTitle>{t('ContactInformation')}</SectionTitle>
                     </SectionTitleGroup>
                     <EditButton onClick={() => setEditingContact(true)}>
                       <IoPencil size={20} color="white" />
@@ -1318,16 +1364,16 @@ const Payment = () => {
                   </SectionHeader>
                   <EditForm>
                     <InputGroup>
-                      <Label>Email Address</Label>
+                      <Label>{t('Email')}</Label>
                       <Input value={profile?.email || user?.email || ''} disabled />
                     </InputGroup>
                     <InputGroup>
-                      <Label>Phone Number</Label>
+                      <Label>{t('Phone')}</Label>
                       <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 123-4567" />
                     </InputGroup>
                     <ButtonRow>
-                      <CancelButton onClick={() => setEditingContact(false)}>Cancel</CancelButton>
-                      <SaveButton onClick={handleSaveContact}>Save Contact</SaveButton>
+                      <CancelButton onClick={() => setEditingContact(false)}>{t('Cancel')}</CancelButton>
+                      <SaveButton onClick={handleSaveContact}>{t('SaveContact')}</SaveButton>
                     </ButtonRow>
                   </EditForm>
                 </>
@@ -1335,7 +1381,7 @@ const Payment = () => {
             </Section>
             {vendorGroups.map((group) => (
               <VendorGroup key={group.vendorId}>
-                <VendorTitle>Vendor: {group.vendorId}</VendorTitle>
+                <VendorTitle>{t('Vendor')}: {group.vendorId}</VendorTitle>
                 {group.items.map((item) => (
                   <CartItem key={item.id}>
                     <ItemImageWrapper>
@@ -1344,7 +1390,7 @@ const Payment = () => {
                     </ItemImageWrapper>
                     <ItemDetails>
                       <ItemName>{item.description}</ItemName>
-                      <ItemPrice>${item.price.toFixed(2)}</ItemPrice>
+                      <ItemPrice>{convertedCartItems.find(ci => ci.id === item.id)?.displayPrice || `$${item.price.toFixed(2)}`}</ItemPrice>
                     </ItemDetails>
                     <RemoveItemButton onClick={() => {/* removeFromCart(item.id) */}}>
                       <IoTrash size={20} />
@@ -1352,7 +1398,7 @@ const Payment = () => {
                   </CartItem>
                 ))}
                 <ShippingSelectGroup>
-                  <Label>Shipping Option</Label>
+                  <Label>{t('ShippingOptions')}</Label>
                   <ShippingSelect
                     value={group.selectedShippingOption?.id || ''}
                     onChange={(e) => {
@@ -1368,7 +1414,7 @@ const Payment = () => {
               </VendorGroup>
             ))}
             <VoucherSection>
-              <Label>Voucher</Label>
+              <Label>{t('Vouchers')}</Label>
               <VoucherSelect onChange={(e) => {/* handleSelectVoucher */}}>
                 <option value="">Select Voucher</option>
                 {/* Assume vouchers fetched separately */}
@@ -1380,7 +1426,7 @@ const Payment = () => {
                   <SectionIconWrapper>
                     <IoCardOutline size={24} />
                   </SectionIconWrapper>
-                  <SectionTitle>Payment Method</SectionTitle>
+                  <SectionTitle>{t('PaymentMethod')}</SectionTitle>
                 </SectionTitleGroup>
                 <EditButton onClick={() => setEditingPayment(!editingPayment)}>
                   <IoPencil size={20} color="white" />
@@ -1394,11 +1440,11 @@ const Payment = () => {
                       {selectedCard?.card?.brand} •••• {selectedCard?.card?.last4}
                     </CardPill>
                   ) : (
-                    <SectionContent>No saved cards</SectionContent>
+                    <SectionContent>{t('NoSavedCards')}</SectionContent>
                   )}
                   <SecurityBadge>
                     <IoLockClosedOutline size={18} color="#00BC7D" />
-                    <SecurityText>Your payment is secured with end-to-end encryption</SecurityText>
+                    <SecurityText>{t('SecureSSLEncryptedCheckout')}</SecurityText>
                   </SecurityBadge>
                 </>
               ) : (
@@ -1426,8 +1472,8 @@ const Payment = () => {
                     </CardElementContainer>
                   </InputGroup>
                   <ButtonRow>
-                    <CancelButton onClick={() => setEditingPayment(false)}>Cancel</CancelButton>
-                    <SaveButton onClick={() => setEditingPayment(false)}>Save Card</SaveButton>
+                    <CancelButton onClick={() => setEditingPayment(false)}>{t('Cancel')}</CancelButton>
+                    <SaveButton onClick={() => setEditingPayment(false)}>{t('SaveCard')}</SaveButton>
                   </ButtonRow>
                 </EditForm>
               )}
@@ -1440,15 +1486,15 @@ const Payment = () => {
                   <SectionIconWrapper>
                     <IoShieldCheckmarkOutline size={24} />
                   </SectionIconWrapper>
-                  <SectionTitle>Order Summary</SectionTitle>
+                  <SectionTitle>{t('OrderSummary')}</SectionTitle>
                 </SectionTitleGroup>
               </SectionHeader>
               <SummaryRow>
-                <SummaryLabel>Subtotal</SummaryLabel>
+                <SummaryLabel>{t('Subtotal')}</SummaryLabel>
                 <SummaryValue>${vendorGroups.reduce((sum, group) => sum + group.items.reduce((total, item) => total + item.price * (item.quantity || 1), 0), 0).toFixed(2)}</SummaryValue>
               </SummaryRow>
               <SummaryRow>
-                <SummaryLabel>Shipping</SummaryLabel>
+                <SummaryLabel>{t('Shipping')}</SummaryLabel>
                 <SummaryValue>${vendorGroups.reduce((sum, group) => {
                   let shipping = 0;
                   if (group.selectedShippingOption?.price) {
@@ -1459,17 +1505,17 @@ const Payment = () => {
               </SummaryRow>
               {selectedVoucher && (
                 <SummaryRow>
-                  <SummaryLabel>Discount</SummaryLabel>
-                  <SummaryValue>-${((calculateTotal() * (parseFloat(selectedVoucher.discount) || 5) / 100) || 0).toFixed(2)}</SummaryValue>
+                  <SummaryLabel>{t('Discount')}</SummaryLabel>
+                  <SummaryValue>-${((total * (parseFloat(selectedVoucher.discount) || 5) / 100) || 0).toFixed(2)}</SummaryValue>
                 </SummaryRow>
               )}
               <SummaryRow>
-                <SummaryLabel total>Total</SummaryLabel>
-                <SummaryValue total>${total.toFixed(2)}</SummaryValue>
+                <SummaryLabel total>{t('Total')}</SummaryLabel>
+                <SummaryValue total>{displayTotal}</SummaryValue>
               </SummaryRow>
               <SecurityBadge>
                 <IoLockClosedOutline size={18} color="#00BC7D" />
-                <SecurityText>Secure SSL encrypted checkout</SecurityText>
+                <SecurityText>{t('SecureSSLEncryptedCheckout')}</SecurityText>
               </SecurityBadge>
             </OrderSummaryCard>
           </RightColumn>
@@ -1478,12 +1524,12 @@ const Payment = () => {
       <BottomBar>
         <BottomContent>
           <TotalSection>
-            <TotalLabel>Total Amount:</TotalLabel>
-            <TotalPrice>${total.toFixed(2)}</TotalPrice>
+            <TotalLabel>{t('TotalAmount')}</TotalLabel>
+            <TotalPrice>{displayTotal}</TotalPrice>
           </TotalSection>
           <PayButton onClick={handlePayment} disabled={loading || !stripe || !elements || vendorGroups.some(g => !g.selectedShippingOption)}>
             <IoLockClosedOutline size={20} />
-            {loading ? 'Processing...' : 'Complete Payment'}
+            {loading ? t('ProcessingPayment') : t('CompletePayment')}
           </PayButton>
         </BottomContent>
       </BottomBar>

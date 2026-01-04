@@ -1,9 +1,10 @@
-// VendorHeader.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { IoSettingsOutline, IoChatbubblesOutline, IoLogOutOutline, IoPersonOutline } from 'react-icons/io5';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/constants';
+import { useTranslation } from 'react-i18next';
 
 // Styled Components
 const HeaderContainer = styled.header`
@@ -117,6 +118,36 @@ const IconButton = styled.button`
   }
 `;
 
+const MessageBadge = styled.span`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f5576c;
+  color: white;
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  padding: 0 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 2px solid white;
+  animation: pulse 2s infinite;
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
+`;
+
 const DropdownContainer = styled.div`
   position: relative;
 `;
@@ -203,7 +234,72 @@ const DropdownItem = styled.button`
 const VendorHeader = ({ profile }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { t } = useTranslation();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread message count (conversations with messages)
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    const fetchUnreadCount = async () => {
+      try {
+        // Get all conversations where user is vendor
+        const { data: conversations, error: convError } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('vendor_id', profile.id);
+
+        if (convError) throw convError;
+
+        if (!conversations || conversations.length === 0) {
+          setUnreadCount(0);
+          return;
+        }
+
+        // Count conversations with at least one message
+        let conversationsWithMessages = 0;
+        
+        for (const conv of conversations) {
+          const { data: messages, error: msgError } = await supabase
+            .from('messages')
+            .select('id')
+            .eq('conversation_id', conv.id)
+            .limit(1);
+
+          if (!msgError && messages && messages.length > 0) {
+            conversationsWithMessages++;
+          }
+        }
+
+        setUnreadCount(conversationsWithMessages);
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+
+    // Subscribe to new messages
+    const channel = supabase
+      .channel('vendor_messages_badge')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.id]);
 
   const handleMessagesClick = () => {
     navigate('/vendor/messages');
@@ -214,7 +310,7 @@ const VendorHeader = ({ profile }) => {
   };
 
   const handleProfileClick = () => {
-    navigate('/vendor/profile');
+    navigate('/vendor');
     setShowDropdown(false);
   };
 
@@ -226,12 +322,13 @@ const VendorHeader = ({ profile }) => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/auth/login');
+      navigate('/welcome');
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
+  console.log(profile?.avatar_url)
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event) => {
@@ -251,37 +348,39 @@ const VendorHeader = ({ profile }) => {
           <ProfileImageContainer onClick={handleProfileClick}>
             <ProfileImage 
               src={profile?.avatar_url || 'https://via.placeholder.com/50'} 
-              alt="Profile"
+              
+              alt={t('Profile')}
             />
           </ProfileImageContainer>
           <VendorInfo>
-            <VendorName>{profile?.first_name || 'Vendor'}</VendorName>
-            <VendorRole>Vendor Dashboard</VendorRole>
+            <VendorName>{profile?.first_name || t('Vendor')}</VendorName>
+            <VendorRole>{t('VendorDashboard')}</VendorRole>
           </VendorInfo>
         </LeftSection>
 
         <RightSection>
-          <IconButton onClick={handleMessagesClick} title="Messages">
+          <IconButton onClick={handleMessagesClick} title={t('Messages')}>
             <IoChatbubblesOutline />
+            {unreadCount > 0 && <MessageBadge>{unreadCount}</MessageBadge>}
           </IconButton>
           
           <DropdownContainer className="dropdown-container">
-            <IconButton onClick={handleSettingsClick} title="Settings">
+            <IconButton onClick={handleSettingsClick} title={t('Settings')}>
               <IoSettingsOutline />
             </IconButton>
             
             <DropdownMenu $show={showDropdown}>
               <DropdownItem onClick={handleProfileClick}>
                 <IoPersonOutline />
-                My Profile
+                {t('MyProfile')}
               </DropdownItem>
               <DropdownItem onClick={handleAccountSettingsClick}>
                 <IoSettingsOutline />
-                Account Settings
+                {t('AccountSettings')}
               </DropdownItem>
               <DropdownItem className="logout" onClick={handleLogout}>
                 <IoLogOutOutline />
-                Logout
+                {t('Logout')}
               </DropdownItem>
             </DropdownMenu>
           </DropdownContainer>

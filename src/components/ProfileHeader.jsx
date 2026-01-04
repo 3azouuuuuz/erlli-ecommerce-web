@@ -179,12 +179,12 @@ const ProfileHeader = ({ profile, customContent }) => {
     <ProfileHeaderContainer>
       <ProfileHeaderContent>
         <ProfileAndButtonContainer>
-          <ProfileImgContainer>
-            <ProfileImg
-              src={profile?.avatar_url || require('../assets/images/arr.jpg')}
-              alt="Profile Avatar"
-            />
-          </ProfileImgContainer>
+          <ProfileImgContainer onClick={() => navigate('/')}>
+  <ProfileImg
+    src={profile?.avatar_url || require('../assets/images/arr.jpg')}
+    alt="Profile Avatar"
+  />
+</ProfileImgContainer>
           <ButtonContainer>
             {customContent ? (
               customContent

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { supabase } from '../lib/supabase';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 
 const Container = styled.div`
   width: 100%;
@@ -191,14 +193,14 @@ const NoResultsText = styled.div`
 `;
 
 const Item = ({ item, grid, badge, onPress, searchQuery = '' }) => {
+  const { t } = useTranslation();
+  
   const highlightText = (text, query) => {
     if (!query || !text || !query.trim()) {
       return text;
     }
-
     const regex = new RegExp(`(${query})`, 'gi');
     const parts = text.split(regex);
-
     return parts.map((part, index) =>
       regex.test(part) ? (
         <HighlightedText key={index}>{part}</HighlightedText>
@@ -208,13 +210,8 @@ const Item = ({ item, grid, badge, onPress, searchQuery = '' }) => {
     );
   };
 
-  const realPrice = item.price;
   const hasDiscount = item.sale_percentage && item.sale_percentage > 0;
-  const discountedPrice = hasDiscount ? realPrice * (1 - item.sale_percentage / 100) : null;
-
-  const formatPrice = (price) => {
-    return price.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  };
+  const discountedPrice = hasDiscount ? item.price * (1 - item.sale_percentage / 100) : null;
 
   return (
     <ItemContainer grid={grid} onClick={() => onPress && onPress(item)}>
@@ -222,7 +219,7 @@ const Item = ({ item, grid, badge, onPress, searchQuery = '' }) => {
         <ItemImage src={item.image_url} alt={item.description} grid={grid} />
         {badge && hasDiscount && (
           <SaleBadge>
-            <SaleText>{item.sale_percentage}% OFF</SaleText>
+            <SaleText>{item.sale_percentage}% {t('OFF')}</SaleText>
           </SaleBadge>
         )}
       </ImageContainer>
@@ -231,14 +228,14 @@ const Item = ({ item, grid, badge, onPress, searchQuery = '' }) => {
       </ItemDescription>
       {hasDiscount ? (
         <PriceContainer>
-          <DiscountedPrice>{formatPrice(discountedPrice)}</DiscountedPrice>
+          <DiscountedPrice>{item.displayDiscountedPrice || `${discountedPrice.toFixed(2)}`}</DiscountedPrice>
           <RealPriceContainer>
-            <RealPrice>{formatPrice(realPrice)}</RealPrice>
+            <RealPrice>{item.displayPrice || `${item.price.toFixed(2)}`}</RealPrice>
             <DiscountPercentage>-{item.sale_percentage}%</DiscountPercentage>
           </RealPriceContainer>
         </PriceContainer>
       ) : (
-        <ItemPrice grid={grid}>{formatPrice(realPrice)}</ItemPrice>
+        <ItemPrice grid={grid}>{item.displayPrice || `${item.price.toFixed(2)}`}</ItemPrice>
       )}
     </ItemContainer>
   );
@@ -257,17 +254,16 @@ const ItemsList = ({
 }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { formatCurrency } = useCurrency();
 
   useEffect(() => {
     if (items) {
-      setProducts(items);
-      setLoading(false);
+      convertProductPrices(items);
       return;
     }
 
     const fetchProducts = async () => {
       setLoading(true);
-
       let query = supabase
         .from('products')
         .select(`
@@ -311,9 +307,11 @@ const ItemsList = ({
       }
 
       const { data, error } = await query;
+
       if (error) {
         console.error('Error fetching products:', error);
         setProducts([]);
+        setLoading(false);
       } else {
         const currentTime = new Date().toISOString();
         const enrichedProducts = data.map(product => {
@@ -326,13 +324,33 @@ const ItemsList = ({
             sale_percentage: activeFlashSale ? activeFlashSale.discount_percentage : null,
           };
         });
-        setProducts(limit ? enrichedProducts.slice(0, limit) : enrichedProducts);
+        
+        const limitedProducts = limit ? enrichedProducts.slice(0, limit) : enrichedProducts;
+        convertProductPrices(limitedProducts);
       }
-      setLoading(false);
     };
 
     fetchProducts();
   }, [category, subcategories, searchQuery, limit, JSON.stringify(filters), items]);
+
+  const convertProductPrices = async (productList) => {
+    const productsWithConvertedPrices = await Promise.all(
+      productList.map(async (product) => {
+        const displayPrice = await formatCurrency(product.price);
+        const hasDiscount = product.sale_percentage && product.sale_percentage > 0;
+        const discountedPrice = hasDiscount ? product.price * (1 - product.sale_percentage / 100) : null;
+        const displayDiscountedPrice = hasDiscount ? await formatCurrency(discountedPrice) : null;
+
+        return {
+          ...product,
+          displayPrice,
+          displayDiscountedPrice
+        };
+      })
+    );
+    setProducts(productsWithConvertedPrices);
+    setLoading(false);
+  };
 
   return (
     <Container>

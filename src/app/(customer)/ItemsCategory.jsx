@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import ShopHeader from '../../components/ShopHeader';
 import RoundShapeList from '../../components/RoundShapeList';
 import { supabase } from '../../lib/supabase';
 import { IoCheckmarkCircle, IoChevronDown } from 'react-icons/io5';
 import FilterIcon from '../../assets/images/Filter.png';
-
+import { useTranslation } from 'react-i18next';
 const PageContainer = styled.div`
   min-height: 100vh;
   background: white;
@@ -426,13 +427,15 @@ const ItemsCategory = () => {
   const itemName = searchParams.get('itemName');
   const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
+  const { formatCurrency } = useCurrency();
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
-  
+  const { t } = useTranslation();
   const [category, setCategory] = useState(null);
   const [subcategories, setSubcategories] = useState([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [convertedProducts, setConvertedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   
@@ -447,17 +450,17 @@ const ItemsCategory = () => {
   const shoeSizes = ['6', '7', '8', '9', '10', '11', '12'];
   const genderOptions = ['All', 'Female', 'Male'];
   const colorOptions = [
-    { name: 'Black', hex: '#000000' },
-    { name: 'White', hex: '#FFFFFF' },
-    { name: 'Red', hex: '#FF0000' },
-    { name: 'Blue', hex: '#0000FF' },
-    { name: 'Green', hex: '#008000' },
-    { name: 'Yellow', hex: '#FFFF00' },
-    { name: 'Pink', hex: '#FFC1CC' },
-    { name: 'Purple', hex: '#800080' },
-    { name: 'Orange', hex: '#FFA500' },
-    { name: 'Gray', hex: '#808080' },
-  ];
+  { name: 'Black', hex: '#000000' },
+  { name: 'White', hex: '#FFFFFF' },
+  { name: 'Red', hex: '#FF0000' },
+  { name: 'Blue', hex: '#0000FF' },
+  { name: 'Green', hex: '#008000' },
+  { name: 'Yellow', hex: '#FFFF00' },
+  { name: 'Pink', hex: '#FFC1CC' },
+  { name: 'Purple', hex: '#800080' },
+  { name: 'Orange', hex: '#FFA500' },
+  { name: 'Gray', hex: '#808080' },
+];
 
   const isShoeCategory = itemName?.toLowerCase().includes('shoe');
   const sizes = isShoeCategory ? shoeSizes : clothingSizes;
@@ -484,39 +487,44 @@ const ItemsCategory = () => {
     };
   }, [showFilters]);
 
-  useEffect(() => {
-    const fetchCategoryAndSubcategories = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select(`
-            id,
-            name,
-            subcategories (id, name, image_url)
-          `)
-          .eq('name', itemName)
-          .single();
+useEffect(() => {
+  const fetchCategoryAndSubcategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select(`
+          id,
+          name,
+          subcategories (id, name, image_url)
+        `)
+        .eq('name', itemName)
+        .single();
 
-        if (error) throw error;
+      if (error) throw error;
 
-        if (data) {
-          setCategory({
-            ...data,
-            originalName: data.name,
-          });
-          setSubcategories(data.subcategories || []);
-        }
-      } catch (error) {
-        console.error('Error fetching category and subcategories:', error);
-      } finally {
-        setLoading(false);
+      if (data) {
+        setCategory({
+          ...data,
+          name: t(`Category_${data.id}`) || data.name,
+          originalName: data.name,
+        });
+        setSubcategories(data.subcategories?.map(sub => ({
+          ...sub,
+          name: t(`Subcategory_${sub.id}`) || sub.name,
+          originalName: sub.name
+        })) || []);
       }
-    };
-
-    if (itemName) {
-      fetchCategoryAndSubcategories();
+    } catch (error) {
+      console.error('Error fetching category and subcategories:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [itemName]);
+  };
+
+  if (itemName) {
+    fetchCategoryAndSubcategories();
+  }
+}, [itemName, t]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -571,27 +579,46 @@ const ItemsCategory = () => {
         });
 
         setProducts(enrichedProducts);
+        
+        // Convert prices
+        const productsWithConvertedPrices = await Promise.all(
+          enrichedProducts.map(async (product) => {
+            const displayPrice = await formatCurrency(product.price);
+            const hasDiscount = product.sale_percentage && product.sale_percentage > 0;
+            const discountedPrice = hasDiscount ? product.price * (1 - product.sale_percentage / 100) : null;
+            const displayDiscountedPrice = hasDiscount ? await formatCurrency(discountedPrice) : null;
+
+            return {
+              ...product,
+              displayPrice,
+              displayDiscountedPrice
+            };
+          })
+        );
+        
+        setConvertedProducts(productsWithConvertedPrices);
       } catch (error) {
         console.error('Error fetching products:', error);
         setProducts([]);
+        setConvertedProducts([]);
       }
     };
 
     fetchProducts();
-  }, [category, selectedSubcategories, selectedSize, selectedColors, minPrice, maxPrice]);
+  }, [category, selectedSubcategories, selectedSize, selectedColors, minPrice, maxPrice, formatCurrency]);
 
   const firstLine = subcategories.slice(0, 5);
   const secondLine = subcategories.slice(5);
 
-  const handleRoundShapeListPress = (subcategoryName) => {
-    setSelectedSubcategories((prev) => {
-      if (prev.includes(subcategoryName)) {
-        return prev.filter((name) => name !== subcategoryName);
-      } else {
-        return [...prev, subcategoryName];
-      }
-    });
-  };
+const handleRoundShapeListPress = (subcategoryName) => {
+  setSelectedSubcategories((prev) => {
+    if (prev.includes(subcategoryName)) {
+      return prev.filter((name) => name !== subcategoryName);
+    } else {
+      return [...prev, subcategoryName];
+    }
+  });
+};
 
   const handleColorSelect = (colorName) => {
     setSelectedColors((prev) => {
@@ -622,13 +649,10 @@ const ItemsCategory = () => {
       image_url: product.image_url,
       description: product.description || 'No description available',
       price: product.price,
+      displayPrice: product.displayPrice,
       sale_percentage: product.sale_percentage || null,
     };
     navigate(`/ProductsView?product=${encodeURIComponent(JSON.stringify(standardizedProduct))}`);
-  };
-
-  const formatPrice = (price) => {
-    return price.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   if (loading) {
@@ -645,7 +669,8 @@ const ItemsCategory = () => {
           onLogout={logout}
         />
         <LoadingContainer>
-          <LoadingText>Loading...</LoadingText>
+          <LoadingText>{t('Loading') || 'Loading'}...</LoadingText>
+
         </LoadingContainer>
       </PageContainer>
     );
@@ -665,7 +690,7 @@ const ItemsCategory = () => {
           onLogout={logout}
         />
         <LoadingContainer>
-          <LoadingText>Category not found</LoadingText>
+          <LoadingText>{t('CategoryNotFound') || 'Category not found'}</LoadingText>
         </LoadingContainer>
       </PageContainer>
     );
@@ -690,29 +715,29 @@ const ItemsCategory = () => {
           <PageTitle>{category.name}</PageTitle>
           <FilterButtonContainer>
             <FilterButton ref={buttonRef} onClick={() => setShowFilters(!showFilters)}>
-              <FilterIconImg src={FilterIcon} alt="Filter" />
-              Filters
-              <ChevronIcon $isOpen={showFilters} />
-            </FilterButton>
+  <FilterIconImg src={FilterIcon} alt="Filter" />
+  {t('Filter') || 'Filter'}
+  <ChevronIcon $isOpen={showFilters} />
+</FilterButton>
             
             <FiltersDropdown ref={dropdownRef} $show={showFilters}>
               <FilterSection>
-                <FilterTitle>Gender</FilterTitle>
-                <GenderOptions>
-                  {genderOptions.map((gender) => (
-                    <GenderButton
-                      key={gender}
-                      $selected={selectedGender === gender}
-                      onClick={() => setSelectedGender(gender)}
-                    >
-                      {gender}
-                    </GenderButton>
-                  ))}
-                </GenderOptions>
+              <FilterTitle>{t('Gender') || 'Gender'}</FilterTitle>
+<GenderOptions>
+  {genderOptions.map((gender) => (
+    <GenderButton
+      key={gender}
+      $selected={selectedGender === gender}
+      onClick={() => setSelectedGender(gender)}
+    >
+      {t(gender) || gender}
+    </GenderButton>
+  ))}
+</GenderOptions>
               </FilterSection>
 
               <FilterSection>
-                <FilterTitle>Size</FilterTitle>
+                <FilterTitle>{t('Size') || 'Size'}</FilterTitle>
                 <SizeGrid>
                   {sizes.map((size) => (
                     <SizeButton
@@ -727,85 +752,83 @@ const ItemsCategory = () => {
               </FilterSection>
 
               <FilterSection>
-                <FilterTitle>Price Range</FilterTitle>
-                <PriceInputs>
-                  <PriceInput
-                    type="number"
-                    placeholder="Min $"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                  />
-                  <PriceInput
-                    type="number"
-                    placeholder="Max $"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                  />
-                </PriceInputs>
+                <FilterTitle>{t('PriceRange') || 'Price Range'}</FilterTitle>
+<PriceInputs>
+  <PriceInput
+    type="number"
+    placeholder={t('MinPrice') || 'Min $'}
+    value={minPrice}
+    onChange={(e) => setMinPrice(e.target.value)}
+  />
+  <PriceInput
+    type="number"
+    placeholder={t('MaxPrice') || 'Max $'}
+    value={maxPrice}
+    onChange={(e) => setMaxPrice(e.target.value)}
+  />
+</PriceInputs>
               </FilterSection>
 
               <FilterSection>
-                <FilterTitle>Colors</FilterTitle>
+                <FilterTitle>{t('Colors') || 'Colors'}</FilterTitle>
                 <ColorGrid>
                   {colorOptions.map((color) => (
-                    <ColorButton key={color.name} onClick={() => handleColorSelect(color.name)}>
-                      <ColorCircle $color={color.hex} />
-                      {selectedColors.includes(color.name) && <CheckIcon />}
-                    </ColorButton>
-                  ))}
+  <ColorButton key={color.name} onClick={() => handleColorSelect(color.name)}>
+    <ColorCircle $color={color.hex} />
+    {selectedColors.includes(color.name) && <CheckIcon />}
+  </ColorButton>
+))}
                 </ColorGrid>
               </FilterSection>
 
               <FilterActions>
-                <ResetButton onClick={handleReset}>Reset</ResetButton>
-                <ApplyButton onClick={handleApply}>Apply</ApplyButton>
-              </FilterActions>
+  <ResetButton onClick={handleReset}>{t('Clear') || 'Reset'}</ResetButton>
+  <ApplyButton onClick={handleApply}>{t('Apply') || 'Apply'}</ApplyButton>
+</FilterActions>
+
             </FiltersDropdown>
           </FilterButtonContainer>
         </HeaderSection>
 
-        {subcategories.length > 0 && (
-          <SubcategoriesSection>
-            {firstLine.length > 0 && (
-              <SubcategoryRow>
-                {firstLine.map((item) => (
-                  <RoundShapeList
-                    key={item.id}
-                    text={item.name}
-                    imageSource={item.image_url}
-                    selectable={true}
-                    isSelected={selectedSubcategories.includes(item.name)}
-                    onSelect={() => handleRoundShapeListPress(item.name)}
-                  />
-                ))}
-              </SubcategoryRow>
-            )}
-            {secondLine.length > 0 && (
-              <SubcategoryRow>
-                {secondLine.map((item) => (
-                  <RoundShapeList
-                    key={item.id}
-                    text={item.name}
-                    imageSource={item.image_url}
-                    selectable={true}
-                    isSelected={selectedSubcategories.includes(item.name)}
-                    onSelect={() => handleRoundShapeListPress(item.name)}
-                  />
-                ))}
-              </SubcategoryRow>
-            )}
-          </SubcategoriesSection>
+       {subcategories.length > 0 && (
+  <SubcategoriesSection>
+    {firstLine.length > 0 && (
+      <SubcategoryRow>
+        {firstLine.map((item) => (
+          <RoundShapeList
+            key={item.id}
+            text={item.name}
+            imageSource={item.image_url}
+            selectable={true}
+            isSelected={selectedSubcategories.includes(item.originalName)}
+            onSelect={() => handleRoundShapeListPress(item.originalName)}
+          />
+        ))}
+      </SubcategoryRow>
+    )}
+    {secondLine.length > 0 && (
+      <SubcategoryRow>
+        {secondLine.map((item) => (
+          <RoundShapeList
+            key={item.id}
+            text={item.name}
+            imageSource={item.image_url}
+            selectable={true}
+            isSelected={selectedSubcategories.includes(item.originalName)}
+            onSelect={() => handleRoundShapeListPress(item.originalName)}
+          />
+        ))}
+      </SubcategoryRow>
+    )}
+  </SubcategoriesSection>
         )}
 
-        {products.length === 0 ? (
-          <NoProductsText>No products found</NoProductsText>
+        {convertedProducts.length === 0 ? (
+          <NoProductsText>{t('NoProductsFound') || 'No products found'}</NoProductsText>
         ) : (
           <ProductsGrid>
-            {products.map((product) => {
+            {convertedProducts.map((product) => {
               const hasDiscount = product.sale_percentage && product.sale_percentage > 0;
-              const discountedPrice = hasDiscount 
-                ? product.price * (1 - product.sale_percentage / 100) 
-                : null;
 
               return (
                 <ProductCard key={product.id} onClick={() => handleProductPress(product)}>
@@ -813,9 +836,9 @@ const ItemsCategory = () => {
                   <ProductInfo>
                     <ProductDescription>{product.description}</ProductDescription>
                     <PriceContainer>
-                      <Price>{formatPrice(hasDiscount ? discountedPrice : product.price)}</Price>
+                      <Price>{hasDiscount ? product.displayDiscountedPrice : product.displayPrice}</Price>
                       {hasDiscount && (
-                        <OriginalPrice>{formatPrice(product.price)}</OriginalPrice>
+                        <OriginalPrice>{product.displayPrice}</OriginalPrice>
                       )}
                     </PriceContainer>
                   </ProductInfo>

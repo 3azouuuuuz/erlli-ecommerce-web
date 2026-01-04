@@ -6,7 +6,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { IoTrendingUpSharp, IoTrendingDownSharp, IoTrashOutline, IoPencilOutline, IoEyeOutline } from 'react-icons/io5';
 import VendorHeader from '../../components/VendorHeader';
-
+import { useCurrency } from '../../contexts/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 // Styled Components
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -505,17 +506,41 @@ const ErrorText = styled.p`
 
 const Analytics = () => {
   const { profile } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const { currency, formatCurrency } = useCurrency();
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Store raw USD values
+  const [analyticsDataUSD, setAnalyticsDataUSD] = useState({
+    totalOrders: 0,
+    totalRevenue: 0,
+    averageOrderValue: 0,
+    totalRefunds: 0,
+  });
+  
+  // Display values (formatted)
   const [analyticsData, setAnalyticsData] = useState({
     totalOrders: 0,
     totalRevenue: 0,
     averageOrderValue: 0,
     totalRefunds: 0,
   });
+  
   const [chartData, setChartData] = useState([]);
   const [topSellingProducts, setTopSellingProducts] = useState([]);
+  
+  const [formattedRevenue, setFormattedRevenue] = useState('$0.00');
+  const [formattedAvgOrder, setFormattedAvgOrder] = useState('$0.00');
+  const [formattedRefunds, setFormattedRefunds] = useState('$0.00');
+  const [formattedCurrentRevenue, setFormattedCurrentRevenue] = useState('$0.00');
+  const [formattedPrevRevenue, setFormattedPrevRevenue] = useState('$0.00');
+  
+  // Chart state for currency conversion
+  const [maxRevenue, setMaxRevenue] = useState(2000);
+  const [yAxisLabels, setYAxisLabels] = useState(['2000', '1500', '1000', '500', '0']);
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -527,14 +552,64 @@ const Analytics = () => {
   const growthState = currentRevenue > previousRevenue ? 'up' : currentRevenue < previousRevenue ? 'down' : 'stable';
   const percentageChange = previousRevenue !== 0
     ? ((currentRevenue - previousRevenue) / previousRevenue * 100).toFixed(1)
-    : 0;
-
-  const MAX_REVENUE = 2000;
-  const yAxisLabels = ['2000', '1500', '1000', '500', '0'];
+    : currentRevenue > 0 ? 100 : 0;
 
   useEffect(() => {
     fetchAnalyticsData();
   }, [profile?.id]);
+
+  useEffect(() => {
+    const convertAllValues = async () => {
+      if (chartData.length === 0) return;
+
+      // Convert analytics metrics from stored USD values
+      const convertedRevenue = await formatCurrency(analyticsDataUSD.totalRevenue);
+      const convertedAvg = await formatCurrency(analyticsDataUSD.averageOrderValue);
+      const convertedRefunds = await formatCurrency(analyticsDataUSD.totalRefunds);
+
+      setFormattedRevenue(convertedRevenue);
+      setFormattedAvgOrder(convertedAvg);
+      setFormattedRefunds(convertedRefunds);
+
+      // Convert chart revenue values
+      const convertedCurrent = await formatCurrency(currentRevenue);
+      const convertedPrev = await formatCurrency(previousRevenue);
+      setFormattedCurrentRevenue(convertedCurrent);
+      setFormattedPrevRevenue(convertedPrev);
+
+      // Convert Y-axis labels based on currency
+      const maxRevenueInCurrency = await formatCurrency(2000);
+      const extractedMax = parseFloat(maxRevenueInCurrency.replace(/[^0-9.]/g, ''));
+      setMaxRevenue(extractedMax);
+
+      // Calculate proportional Y-axis values
+      const step = extractedMax / 4;
+      const newLabels = [
+        Math.round(extractedMax).toString(),
+        Math.round(extractedMax - step).toString(),
+        Math.round(extractedMax - step * 2).toString(),
+        Math.round(extractedMax - step * 3).toString(),
+        '0'
+      ];
+      setYAxisLabels(newLabels);
+
+      // Convert product prices
+      if (topSellingProducts.length > 0) {
+        const productsWithConvertedPrices = await Promise.all(
+          topSellingProducts.map(async (product) => {
+            return {
+              ...product,
+              displayPrice: await formatCurrency(product.price),
+              priceCurrency: currency
+            };
+          })
+        );
+        setTopSellingProducts(productsWithConvertedPrices);
+      }
+    };
+
+    convertAllValues();
+  }, [currency, chartData, currentRevenue, previousRevenue, analyticsDataUSD]);
 
   const fetchAnalyticsData = async () => {
     if (!profile?.id) {
@@ -574,12 +649,29 @@ const Analytics = () => {
         return sum + refundAmount;
       }, 0);
 
+      // Store raw USD values
+      setAnalyticsDataUSD({
+        totalOrders,
+        totalRevenue,
+        averageOrderValue,
+        totalRefunds,
+      });
+
+      // Set initial formatted values
+      const initialRevenue = await formatCurrency(totalRevenue);
+      const initialAvg = await formatCurrency(averageOrderValue);
+      const initialRefunds = await formatCurrency(totalRefunds);
+
       setAnalyticsData({
         totalOrders,
         totalRevenue,
         averageOrderValue,
         totalRefunds,
       });
+
+      setFormattedRevenue(initialRevenue);
+      setFormattedAvgOrder(initialAvg);
+      setFormattedRefunds(initialRefunds);
 
       // Calculate monthly revenue
       const months = [];
@@ -699,125 +791,122 @@ const Analytics = () => {
   };
 
   return (
-    <PageContainer>
-      <VendorHeader profile={profile} />
-      <Container>
-        <Header>
-          <PageTitle>Analytics</PageTitle>
-        </Header>
-
-        {loading ? (
-          <LoadingContainer>
-            <Spinner />
-            <LoadingText>Loading analytics...</LoadingText>
-          </LoadingContainer>
-        ) : error ? (
-          <ErrorText>{error}</ErrorText>
-        ) : (
-          <>
-            <MetricsGrid>
-              <MetricCard>
-                <MetricValue>{analyticsData.totalOrders}</MetricValue>
-                <MetricLabel>Total Orders</MetricLabel>
-              </MetricCard>
-              <MetricCard>
-                <MetricValue>${analyticsData.totalRevenue.toFixed(2)}</MetricValue>
-                <MetricLabel>Total Revenue</MetricLabel>
-              </MetricCard>
-              <MetricCard>
-                <MetricValue>${analyticsData.averageOrderValue.toFixed(2)}</MetricValue>
-                <MetricLabel>Average Order Value</MetricLabel>
-              </MetricCard>
-              <MetricCard>
-                <MetricValue>${analyticsData.totalRefunds.toFixed(2)}</MetricValue>
-                <MetricLabel>Total Refunds Issued</MetricLabel>
-              </MetricCard>
-            </MetricsGrid>
-
-            <ChartSection>
-              <ChartHeader>
-                <ChartTitle>Revenue</ChartTitle>
-                <ChartValue>${currentRevenue.toFixed(2)}</ChartValue>
-                <ChartGrowth>
-                  <GrowthBubble $type={growthState}>
-                    <IconCircle>
-                      {growthState === 'up' ? <IoTrendingUpSharp /> : <IoTrendingDownSharp />}
-                    </IconCircle>
-                    <GrowthText>
-                      {growthState === 'stable' ? '0.0%' : `${Math.abs(percentageChange)}%`}
-                    </GrowthText>
-                  </GrowthBubble>
-                  <GrowthComparison>From ${previousRevenue.toFixed(2)}</GrowthComparison>
-                </ChartGrowth>
-              </ChartHeader>
-              <ChartWrapper>
-                <Chart>
-                  <GridLines>
-                    {yAxisLabels.map((_, index) => (
-                      <GridLine key={index} $position={(index / (yAxisLabels.length - 1)) * 100} />
-                    ))}
-                  </GridLines>
-                  <YAxis>
-                    {yAxisLabels.map((label, index) => (
-                      <YAxisLabel key={index}>${label}</YAxisLabel>
-                    ))}
-                  </YAxis>
-                  <ChartBars>
-                    {chartData.map((data, index) => {
-                      const barHeight = (data.revenue / MAX_REVENUE) * 100;
-                      return (
-                        <BarContainer key={index}>
-                          <Bar $height={barHeight} $highlighted={data.isHighlighted} />
-                          <XAxisLabel>{data.month}</XAxisLabel>
-                        </BarContainer>
-                      );
-                    })}
-                  </ChartBars>
-                </Chart>
-              </ChartWrapper>
-            </ChartSection>
-
-            <SectionTitle>Top Selling Products</SectionTitle>
-            {topSellingProducts.length === 0 ? (
-              <EmptyState>
-                <EmptyStateText>No top-selling products available</EmptyStateText>
-              </EmptyState>
-            ) : (
-              <ProductsGrid>
-                {topSellingProducts.map((item) => (
-                  <ProductCard key={item.id} onClick={() => handleViewProduct(item.id)}>
-                    <ProductImageWrapper>
-                      <ProductImage src={item.image_url} alt={item.name} />
-                    </ProductImageWrapper>
-                    <ProductInfo>
-                      <ProductHeader>
-                        <ProductName>{item.name}</ProductName>
-                        <ProductDescription>{item.description}</ProductDescription>
-                      </ProductHeader>
-                      <ProductFooter>
-                        <ProductPrice>${item.price.toFixed(2)}</ProductPrice>
-                        <ActionButtons onClick={(e) => e.stopPropagation()}>
-                          <ViewButton onClick={() => handleViewProduct(item.id)} title="View">
-                            <IoEyeOutline size={16} />
-                          </ViewButton>
-                          <EditButton onClick={(e) => handleEditProduct(e, item.id)} title="Edit">
-                            <IoPencilOutline size={14} />
-                          </EditButton>
-                          <DeleteButton onClick={(e) => handleDeleteProduct(e, item.id)} title="Delete">
-                            <IoTrashOutline size={16} />
-                          </DeleteButton>
-                        </ActionButtons>
-                      </ProductFooter>
-                    </ProductInfo>
-                  </ProductCard>
-                ))}
-              </ProductsGrid>
-            )}
-          </>
-        )}
-      </Container>
-    </PageContainer>
-  );
+  <PageContainer>
+    <VendorHeader profile={profile} />
+    <Container>
+      <Header>
+        <PageTitle>{t('Analytics')}</PageTitle>
+      </Header>
+      {loading ? (
+        <LoadingContainer>
+          <Spinner />
+          <LoadingText>{t('LoadingAnalytics')}</LoadingText>
+        </LoadingContainer>
+      ) : error ? (
+        <ErrorText>{error}</ErrorText>
+      ) : (
+        <>
+          <MetricsGrid>
+            <MetricCard>
+              <MetricValue>{analyticsData.totalOrders}</MetricValue>
+              <MetricLabel>{t('TotalOrders')}</MetricLabel>
+            </MetricCard>
+            <MetricCard>
+              <MetricValue>{formattedRevenue}</MetricValue>
+              <MetricLabel>{t('TotalRevenue')}</MetricLabel>
+            </MetricCard>
+            <MetricCard>
+              <MetricValue>{formattedAvgOrder}</MetricValue>
+              <MetricLabel>{t('AverageOrderValue')}</MetricLabel>
+            </MetricCard>
+            <MetricCard>
+              <MetricValue>{formattedRefunds}</MetricValue>
+              <MetricLabel>{t('TotalRefundsIssued')}</MetricLabel>
+            </MetricCard>
+          </MetricsGrid>
+          <ChartSection>
+            <ChartHeader>
+              <ChartTitle>{t('Revenue')}</ChartTitle>
+              <ChartValue>{formattedCurrentRevenue}</ChartValue>
+              <ChartGrowth>
+                <GrowthBubble $type={growthState}>
+                  <IconCircle>
+                    {growthState === 'up' ? <IoTrendingUpSharp /> : <IoTrendingDownSharp />}
+                  </IconCircle>
+                  <GrowthText>
+                    {growthState === 'stable' ? '0.0%' : `${Math.abs(percentageChange)}%`}
+                  </GrowthText>
+                </GrowthBubble>
+                <GrowthComparison>{t('From')} {formattedPrevRevenue}</GrowthComparison>
+              </ChartGrowth>
+            </ChartHeader>
+            <ChartWrapper>
+              <Chart>
+                <GridLines>
+                  {yAxisLabels.map((_, index) => (
+                    <GridLine key={index} $position={(index / (yAxisLabels.length - 1)) * 100} />
+                  ))}
+                </GridLines>
+                <YAxis>
+                  {yAxisLabels.map((label, index) => (
+                    <YAxisLabel key={index}>{label}</YAxisLabel>
+                  ))}
+                </YAxis>
+                <ChartBars>
+                  {chartData.map((data, index) => {
+                    const barHeight = (data.revenue / maxRevenue) * 100;
+                    return (
+                      <BarContainer key={index}>
+                        <Bar $height={barHeight} $highlighted={data.isHighlighted} />
+                        <XAxisLabel>{data.month}</XAxisLabel>
+                      </BarContainer>
+                    );
+                  })}
+                </ChartBars>
+              </Chart>
+            </ChartWrapper>
+          </ChartSection>
+          <SectionTitle>{t('TopSellingProducts')}</SectionTitle>
+          {topSellingProducts.length === 0 ? (
+            <EmptyState>
+              <EmptyStateText>{t('NoTopSellingProductsAvailable')}</EmptyStateText>
+            </EmptyState>
+          ) : (
+            <ProductsGrid>
+  {topSellingProducts.map((item) => (
+    <ProductCard key={item.id} onClick={() => handleViewProduct(item.id)}>
+      <ProductImageWrapper>
+        <ProductImage src={item.image_url} alt={item.name} />
+      </ProductImageWrapper>
+      <ProductInfo>
+        <ProductHeader>
+          <ProductName>{item.name}</ProductName>
+          <ProductDescription>{item.description}</ProductDescription>
+        </ProductHeader>
+        <ProductFooter>
+          <ProductPrice>{item.displayPrice}</ProductPrice>
+          <ActionButtons onClick={(e) => e.stopPropagation()}>
+            <ViewButton onClick={() => handleViewProduct(item.id)} title={t('View')}>
+              <IoEyeOutline size={16} />
+            </ViewButton>
+            <EditButton onClick={(e) => handleEditProduct(e, item.id)} title={t('Edit')}>
+              <IoPencilOutline size={14} />
+            </EditButton>
+            <DeleteButton onClick={(e) => handleDeleteProduct(e, item.id)} title={t('Delete')}>
+              <IoTrashOutline size={16} />
+            </DeleteButton>
+          </ActionButtons>
+        </ProductFooter>
+      </ProductInfo>
+    </ProductCard>
+  ))}
+</ProductsGrid>
+          )}
+        </>
+      )}
+    </Container>
+  </PageContainer>
+);
 };
 
 export default Analytics;

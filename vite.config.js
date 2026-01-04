@@ -5,7 +5,6 @@ import react from '@vitejs/plugin-react';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-
   // ---------- PROXY ----------
   server: {
     proxy: {
@@ -16,7 +15,6 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api\/query/, ''),
       },
-
       // 2. Chatwoot REST API (for agent connection)
       '/api/chatwoot': {
         target: 'http://84.54.23.242:9000',
@@ -24,7 +22,6 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api\/chatwoot/, '/api/v1'),
       },
-
       // 3. Chatwoot WebSocket (real-time messages)
       '/cable': {
         target: 'ws://84.54.23.242:9000',
@@ -33,5 +30,7 @@ export default defineConfig({
         secure: false,
       },
     },
+    // ---------- CLIENT-SIDE ROUTING FIX ----------
+    historyApiFallback: true, // Simple fix - serve index.html for all routes
   },
 });

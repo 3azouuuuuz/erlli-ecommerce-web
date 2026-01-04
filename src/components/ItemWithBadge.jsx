@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { supabase } from '../lib/supabase';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 
 const Container = styled.div`
   display: grid;
@@ -185,13 +187,16 @@ const ErrorText = styled.div`
 `;
 
 const ItemWithBadge = ({ onPress }) => {
+  const { t } = useTranslation();
   const [flashSaleItems, setFlashSaleItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { formatCurrency } = useCurrency();
 
   const fetchFlashSaleItems = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    
     try {
       const { data: flashSaleData, error: flashSaleError } = await supabase
         .from('flash_sales')
@@ -203,7 +208,7 @@ const ItemWithBadge = ({ onPress }) => {
         .single();
 
       if (flashSaleError || !flashSaleData) {
-        throw new Error('No active flash sale event found');
+        throw new Error(t('NoActiveFlashSaleFound') || 'No active flash sale event found');
       }
 
       const { data, error } = await supabase
@@ -223,20 +228,27 @@ const ItemWithBadge = ({ onPress }) => {
 
       if (error) throw error;
 
-      const formattedItems = data.map((item) => {
-        const originalPrice = item.products.price;
-        const discountedPrice = originalPrice * (1 - item.discount_percentage / 100);
-        
-        return {
-          id: item.products.id,
-          image_url: item.products.image_url,
-          description: item.products.description,
-          price: item.products.price,
-          discountedPrice: discountedPrice,
-          salePercentage: `${item.discount_percentage}% OFF`,
-          sale_percentage: item.discount_percentage,
-        };
-      });
+      const formattedItems = await Promise.all(
+        data.map(async (item) => {
+          const originalPrice = item.products.price;
+          const discountedPrice = originalPrice * (1 - item.discount_percentage / 100);
+          
+          const displayDiscountedPrice = await formatCurrency(discountedPrice);
+          const displayOriginalPrice = await formatCurrency(originalPrice);
+
+          return {
+            id: item.products.id,
+            image_url: item.products.image_url,
+            description: item.products.description,
+            price: originalPrice,
+            discountedPrice: discountedPrice,
+            displayDiscountedPrice,
+            displayOriginalPrice,
+            salePercentage: `${item.discount_percentage}% ${t('OFF') || 'OFF'}`,
+            sale_percentage: item.discount_percentage,
+          };
+        })
+      );
 
       setFlashSaleItems(formattedItems);
     } catch (err) {
@@ -245,15 +257,11 @@ const ItemWithBadge = ({ onPress }) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [formatCurrency, t]);
 
   useEffect(() => {
     fetchFlashSaleItems();
   }, [fetchFlashSaleItems]);
-
-  const formatPrice = (price) => {
-    return price.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  };
 
   if (isLoading) {
     return (
@@ -279,7 +287,7 @@ const ItemWithBadge = ({ onPress }) => {
     return (
       <Container>
         <ErrorContainer>
-          <ErrorText>No flash sale items available</ErrorText>
+          <ErrorText>{t('NoFlashSaleItemsAvailable') || 'No flash sale items available'}</ErrorText>
         </ErrorContainer>
       </Container>
     );
@@ -298,8 +306,8 @@ const ItemWithBadge = ({ onPress }) => {
           <ItemDetails>
             <ItemDescription>{item.description}</ItemDescription>
             <PriceContainer>
-              <CurrentPrice>{formatPrice(item.discountedPrice)}</CurrentPrice>
-              <OriginalPrice>{formatPrice(item.price)}</OriginalPrice>
+              <CurrentPrice>{item.displayDiscountedPrice}</CurrentPrice>
+              <OriginalPrice>{item.displayOriginalPrice}</OriginalPrice>
             </PriceContainer>
           </ItemDetails>
         </ItemContainer>

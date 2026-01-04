@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import ShopHeader from '../../components/ShopHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { IoLockClosed, IoCheckmarkCircle, IoTime, IoGift } from 'react-icons/io5';
 
 const PageContainer = styled.div`
@@ -484,8 +485,9 @@ const Spinner = styled.div`
 `;
 
 const Vouchers = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, profile, logout, refreshProfile } = useAuth();
+  const { user, profile, logout } = useAuth();
   
   const [selectedButton, setSelectedButton] = useState('Milestones');
   const [progressVouchers, setProgressVouchers] = useState([]);
@@ -494,11 +496,8 @@ const Vouchers = () => {
   const [hasFirstPurchase, setHasFirstPurchase] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Check if user has made their first purchase
   const checkFirstPurchase = async (userId) => {
     try {
-      console.log('🔍 Checking first purchase for user:', userId);
-      
       const { data, error } = await supabase
         .from('orders')
         .select('id, user_id, status')
@@ -507,16 +506,13 @@ const Vouchers = () => {
         .limit(1);
       
       if (error) {
-        console.error('❌ Error checking first purchase:', error);
+        console.error('Error checking first purchase:', error);
         return false;
       }
       
-      console.log('📦 Orders data:', data);
-      console.log('✅ Has first purchase:', data && data.length > 0);
-      
       return data && data.length > 0;
     } catch (error) {
-      console.error('❌ Error in checkFirstPurchase:', error);
+      console.error('Error in checkFirstPurchase:', error);
       return false;
     }
   };
@@ -524,19 +520,14 @@ const Vouchers = () => {
   useEffect(() => {
     const fetchVouchers = async () => {
       if (!profile) {
-        console.log('⚠️ No profile available');
         setLoading(false);
         return;
       }
 
-      console.log('🚀 Starting fetchVouchers for profile:', profile.id);
       setLoading(true);
 
-      // Check first purchase status
       const purchaseStatus = await checkFirstPurchase(profile.id);
-      console.log('💳 Purchase status on mount:', purchaseStatus);
       setHasFirstPurchase(purchaseStatus);
-      console.log('🔄 State updated - hasFirstPurchase set to:', purchaseStatus);
 
       const { data: progressRewardsData, error: progressRewardsError } = await supabase
         .from('rewards')
@@ -572,7 +563,6 @@ const Vouchers = () => {
 
       setUserRewards(userRewardsData || []);
 
-      // Filter to only include "First Purchase" reward (id 1)
       const mergedProgressVouchers = progressRewardsData
         .filter(reward => reward.id === 1)
         .map(reward => ({
@@ -607,39 +597,24 @@ const Vouchers = () => {
   }, [profile]);
 
   const handleCollectPress = async (voucherId) => {
-    console.log('🎁 handleCollectPress called for voucher:', voucherId);
-    
     const voucher = activeVouchers.find(v => v.id === voucherId);
-    console.log('📋 Voucher found:', voucher);
     
     if (!voucher || voucher.isCollected) {
-      console.log('⚠️ Voucher already collected or not found');
       return;
     }
 
-    console.log('🔍 Re-checking purchase status for user:', profile.id);
-    
-    // Re-check if user has made their first purchase (in real-time)
     const currentPurchaseStatus = await checkFirstPurchase(profile.id);
-    console.log('💳 Current purchase status:', currentPurchaseStatus);
     
     if (!currentPurchaseStatus) {
-      console.log('❌ User has not made first purchase yet');
-      alert('You need to complete your first purchase to collect this voucher!');
+      alert(t('FirstPurchaseRequired'));
       return;
     }
     
-    console.log('✅ User has made first purchase, proceeding with collection');
-    
-    // Update the state for UI consistency
     setHasFirstPurchase(true);
 
     const collectionDate = new Date();
     const validityDate = new Date(collectionDate);
     validityDate.setDate(collectionDate.getDate() + 7);
-
-    console.log('📅 Collection date:', collectionDate.toISOString());
-    console.log('📅 Validity date:', validityDate.toISOString().split('T')[0]);
 
     const upsertData = {
       user_id: profile.id,
@@ -648,20 +623,16 @@ const Vouchers = () => {
       collected_at: collectionDate.toISOString(),
       validity: validityDate.toISOString().split('T')[0],
     };
-    
-    console.log('💾 Upserting data:', upsertData);
 
     const { error } = await supabase
       .from('user_rewards')
       .upsert(upsertData, { onConflict: ['user_id', 'reward_id'] });
 
     if (error) {
-      console.error('❌ Error collecting voucher:', error);
-      alert('Failed to collect voucher. Please try again.');
+      console.error('Error collecting voucher:', error);
+      alert(t('FailedToCollectVoucher'));
       return;
     }
-
-    console.log('✅ Voucher collected successfully in database');
 
     const newUserReward = {
       user_id: profile.id,
@@ -678,8 +649,7 @@ const Vouchers = () => {
     setUserRewards([...userRewards, newUserReward]);
     setSelectedButton('Active Rewards');
     
-    console.log('✅ State updated, voucher collection complete');
-    alert('Voucher collected successfully! Valid for 7 days.');
+    alert(t('VoucherCollectedSuccessfully'));
   };
 
   const getExpiryInfo = (validity) => {
@@ -702,18 +672,8 @@ const Vouchers = () => {
 
   const renderActiveReward = (voucher) => {
     const { expiringSoon, daysLeft } = getExpiryInfo(voucher.validity);
-    // Only consider expired if the voucher has been collected
     const isExpired = voucher.isCollected && daysLeft < 0;
     const isLocked = !hasFirstPurchase && !voucher.isCollected;
-
-    console.log(`🎫 Rendering voucher ${voucher.id}:`, {
-      hasFirstPurchase,
-      isCollected: voucher.isCollected,
-      isLocked,
-      isExpired,
-      daysLeft,
-      validity: voucher.validity
-    });
 
     return (
       <VoucherContainer key={voucher.id}>
@@ -729,7 +689,7 @@ const Vouchers = () => {
                 {isLocked ? <IoLockClosed /> : <IoGift />}
               </VoucherIconWrapper>
               <VoucherLabel $expiringSoon={expiringSoon} $isLocked={isLocked}>
-                {isLocked ? 'Locked Voucher' : 'Voucher'}
+                {isLocked ? t('LockedVoucher') : t('VoucherLabel')}
               </VoucherLabel>
             </VoucherHeader>
             <VoucherTitle $isLocked={isLocked}>{voucher.title}</VoucherTitle>
@@ -737,7 +697,7 @@ const Vouchers = () => {
             {isLocked && (
               <LockMessage>
                 <IoLockClosed />
-                Complete your first purchase to unlock
+                {t('CompleteFirstPurchaseToUnlock')}
               </LockMessage>
             )}
           </VoucherLeft>
@@ -745,13 +705,13 @@ const Vouchers = () => {
             {expiringSoon && !isExpired && voucher.isCollected && (
               <DaysLeftBadge $expiringSoon={expiringSoon}>
                 <IoTime />
-                {daysLeft} {daysLeft === 1 ? 'Day' : 'Days'} Left
+                {daysLeft} {daysLeft === 1 ? t('Day') : t('Days')} {t('DaysLeft')}
               </DaysLeftBadge>
             )}
             {!isLocked && voucher.isCollected && (
               <ValidityContainer $expiringSoon={expiringSoon}>
                 <ValidityText $expiringSoon={expiringSoon}>
-                  Valid until {formatValidityDate(voucher.validity)}
+                  {t('ValidUntil')}: {formatValidityDate(voucher.validity)}
                 </ValidityText>
               </ValidityContainer>
             )}
@@ -763,24 +723,24 @@ const Vouchers = () => {
               {isLocked ? (
                 <>
                   <IoLockClosed />
-                  Locked
+                  {t('Locked')}
                 </>
               ) : voucher.isCollected ? (
                 voucher.isUsed ? (
                   <>
                     <IoCheckmarkCircle />
-                    Used
+                    {t('UsedVoucher')}
                   </>
                 ) : (
                   <>
                     <IoCheckmarkCircle />
-                    Collected
+                    {t('Collected')}
                   </>
                 )
               ) : (
                 <>
                   <IoGift />
-                  Collect Now
+                  {t('CollectNow')}
                 </>
               )}
             </CollectButton>
@@ -838,36 +798,22 @@ const Vouchers = () => {
       />
       <Container>
         <Header>
-          <Title>My Vouchers</Title>
-          <Subtitle>Collect and use your exclusive rewards</Subtitle>
+          <Title>{t('Vouchers')}</Title>
+          <Subtitle>{t('CollectAndUseRewards')}</Subtitle>
         </Header>
-
-        {/* Debug info */}
-        <div style={{ background: '#f0f0f0', padding: '10px', marginBottom: '20px', borderRadius: '8px' }}>
-          <strong>Debug Info:</strong><br/>
-          Profile ID: {profile?.id}<br/>
-          Has First Purchase: {hasFirstPurchase ? '✅ Yes' : '❌ No'}<br/>
-          Active Vouchers Count: {activeVouchers.length}<br/>
-          {activeVouchers.map(v => (
-            <div key={v.id}>
-              Voucher {v.id}: isCollected={v.isCollected ? 'Yes' : 'No'}, 
-              isLocked={(!hasFirstPurchase && !v.isCollected) ? 'Yes' : 'No'}
-            </div>
-          ))}
-        </div>
 
         <ButtonContainer>
           <TabButton
             $active={selectedButton === 'Active Rewards'}
             onClick={() => setSelectedButton('Active Rewards')}
           >
-            Active Rewards
+            {t('ActiveRewards')}
           </TabButton>
           <TabButton
             $active={selectedButton === 'Milestones'}
             onClick={() => setSelectedButton('Milestones')}
           >
-            Milestones
+            {t('Milestones')}
           </TabButton>
         </ButtonContainer>
 
@@ -876,7 +822,7 @@ const Vouchers = () => {
             activeVouchers.length > 0 ? (
               activeVouchers.map(voucher => renderActiveReward(voucher))
             ) : (
-              <NoItemsText>No active rewards available</NoItemsText>
+              <NoItemsText>{t('NoActiveRewardsAvailable')}</NoItemsText>
             )
           ) : (
             progressVouchers.length > 0 ? (
@@ -884,7 +830,7 @@ const Vouchers = () => {
                 {progressVouchers.map(item => renderProgressItem(item))}
               </ProgressGrid>
             ) : (
-              <NoItemsText>No milestones available</NoItemsText>
+              <NoItemsText>{t('NoMilestonesAvailable')}</NoItemsText>
             )
           )}
         </Content>

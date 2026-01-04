@@ -8,8 +8,10 @@ import TitleWithAction from '../../components/TitleWithAction';
 import GridItems from '../../components/GridItems';
 import ItemsList from '../../components/Items';
 import ItemWithBadge from '../../components/ItemWithBadge';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import MostPopular from '../../components/MostPopular';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 
 const CustomerContainer = styled.div`
   padding: 80px 4px 20px 4px;
@@ -102,13 +104,15 @@ const TopProductImage = styled.img`
 const Index = () => {
   const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
+  const { formatCurrency } = useCurrency();
+const [convertedTopProducts, setConvertedTopProducts] = useState([]);
   const [flashSaleEndTime, setFlashSaleEndTime] = useState(null);
   const [flashSaleId, setFlashSaleId] = useState(null);
   const [timerText, setTimerText] = useState('00:00:00:00');
   const [topProducts, setTopProducts] = useState([]);
   const [loadingTopProducts, setLoadingTopProducts] = useState(true);
   const timerRef = useRef(null);
-
+  const { t } = useTranslation();
   const fetchTopProducts = useCallback(async () => {
     try {
       setLoadingTopProducts(true);
@@ -150,6 +154,25 @@ const Index = () => {
       setLoadingTopProducts(false);
     }
   }, []);
+
+  useEffect(() => {
+  const convertTopProductPrices = async () => {
+    if (topProducts.length === 0) return;
+    
+    const productsWithConvertedPrices = await Promise.all(
+      topProducts.map(async (product) => {
+        return {
+          ...product,
+          displayPrice: await formatCurrency(product.price)
+        };
+      })
+    );
+    setConvertedTopProducts(productsWithConvertedPrices);
+  };
+  
+  convertTopProductPrices();
+}, [topProducts, formatCurrency]);
+
 
   const fetchFlashSaleEndTime = useCallback(async () => {
     try {
@@ -233,16 +256,17 @@ const Index = () => {
     navigate('/ProductList?section=new-items');
   };
 
-  const handleProductPress = (product) => {
-    const standardizedProduct = {
-      id: product.id,
-      image_url: product.image_url,
-      description: product.description || 'No description available',
-      price: product.price,
-      sale_percentage: product.sale_percentage || null,
-    };
-    navigate(`/ProductsView?product=${encodeURIComponent(JSON.stringify(standardizedProduct))}`);
+const handleProductPress = (product) => {
+  const standardizedProduct = {
+    id: product.id,
+    image_url: product.image_url,
+    description: product.description || 'No description available',
+    price: product.price,
+    displayPrice: product.displayPrice, // Use the pre-converted price
+    sale_percentage: product.sale_percentage || null,
   };
+  navigate(`/ProductsView?product=${encodeURIComponent(JSON.stringify(standardizedProduct))}`);
+};
 
   return (
     <>
@@ -260,31 +284,31 @@ const Index = () => {
         <BannerView flashSaleId={flashSaleId} />
         
         <TitleWithAction
-          title="Categories"
+          title={t('Categories') || 'Categories'}
           showClock={false}
           onPress={handleSeeAllCategories}
         />
         <GridItems limit={4} />
         
         <Greeting>
-          <Title>Top Products</Title>
+          <Title>{t('TopProducts') || 'Top Products'}</Title>
         </Greeting>
         {loadingTopProducts ? (
-          <Loader>Loading...</Loader>
-        ) : topProducts.length > 0 ? (
+          <Loader>{t('Loading') || 'Loading'}...</Loader>
+        ) : convertedTopProducts.length > 0 ? (
           <TopProductsContainer>
-            {topProducts.map((product) => (
+            {convertedTopProducts.map((product) => (
               <TopProductCard key={product.id} onClick={() => handleProductPress(product)}>
                 <TopProductImage src={product.image_url} alt={product.description} />
               </TopProductCard>
             ))}
           </TopProductsContainer>
         ) : (
-          <Loader>No Top Products Available</Loader>
+          <Loader>{t('NoTopProductsAvailable') || 'No Top Products Available'}</Loader>
         )}
         
         <TitleWithAction
-          title="New Items"
+          title={t('NewItems') || 'New Items'}
           showClock={false}
           onPress={handleSeeAllNewItems}
         />
@@ -293,7 +317,7 @@ const Index = () => {
         {flashSaleEndTime && (
           <>
             <TitleWithAction
-              title="Flash Sale"
+              title={t('FlashSale') || 'Flash Sale'}
               showClock={true}
               onPress={handleItemPress}
               timer={timerText}
@@ -303,7 +327,7 @@ const Index = () => {
         )}
         
         <TitleWithAction
-          title="Most Popular"
+          title={t('MostPopular') || 'Most Popular'}
           showClock={false}
           onPress={handleSeeAllMostPopular}
         />
@@ -311,7 +335,7 @@ const Index = () => {
         
         <Greeting>
           <IconTextContainer>
-            <Title>Just For You</Title>
+            <Title>{t('JustForYou') || 'Just For You'}</Title>
             <StarIcon>★</StarIcon>
           </IconTextContainer>
         </Greeting>
@@ -319,6 +343,8 @@ const Index = () => {
       </CustomerContainer>
     </>
   );
+
+
 };
 
 export default Index;

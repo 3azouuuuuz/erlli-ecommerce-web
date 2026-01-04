@@ -7,8 +7,8 @@ import { supabase } from '../../lib/supabase';
 import { supabaseUrl, supabaseAnonKey } from '../../lib/constants';
 import { IoAdd, IoLockClosed, IoLockOpen, IoTrash, IoCheckmarkCircle } from 'react-icons/io5';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { useTranslation } from 'react-i18next';
 
-// PaymentCard Component Styles
 const Card = styled.div`
   background: #ECFDF5;
   width: 290px;
@@ -20,19 +20,16 @@ const Card = styled.div`
   justify-content: space-between;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 `;
-
 const TopRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
 `;
-
 const LogoContainer = styled.div`
   width: 56.23px;
   height: 28.13px;
@@ -40,31 +37,26 @@ const LogoContainer = styled.div`
   justify-content: center;
   align-items: center;
 `;
-
 const CirclesContainer = styled.div`
   display: flex;
   width: 56.23px;
   position: relative;
 `;
-
 const Circle = styled.div`
   width: 28.13px;
   height: 28.13px;
   border-radius: 50%;
 `;
-
 const CircleLeft = styled(Circle)`
   background: #EB001B;
   position: relative;
   z-index: 2;
 `;
-
 const CircleRight = styled(Circle)`
   background: #F79E1B;
   margin-left: -10px;
   z-index: 1;
 `;
-
 const VisaText = styled.span`
   font-family: 'Raleway', sans-serif;
   font-size: 18px;
@@ -73,13 +65,11 @@ const VisaText = styled.span`
   color: #1A1F71;
   letter-spacing: 1px;
 `;
-
 const UnknownBrandText = styled.span`
   font-family: 'Raleway', sans-serif;
   font-size: 12px;
   color: #666;
 `;
-
 const IconContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -87,7 +77,6 @@ const IconContainer = styled.div`
   width: 24px;
   height: 24px;
 `;
-
 const TrashButton = styled.button`
   background: none;
   border: none;
@@ -97,16 +86,13 @@ const TrashButton = styled.button`
   justify-content: center;
   padding: 0;
   transition: all 0.2s ease;
-
   &:hover {
     transform: scale(1.1);
   }
-
   &:active {
     transform: scale(0.95);
   }
 `;
-
 const CardNumber = styled.p`
   font-family: 'Raleway', sans-serif;
   font-weight: 600;
@@ -116,13 +102,11 @@ const CardNumber = styled.p`
   color: #202020;
   margin: 16px 0;
 `;
-
 const BottomRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
 `;
-
 const CardHolder = styled.span`
   font-family: 'Raleway', sans-serif;
   font-weight: 600;
@@ -132,7 +116,6 @@ const CardHolder = styled.span`
   text-transform: uppercase;
   color: #202020;
 `;
-
 const ExpiryDate = styled.span`
   font-family: 'Raleway', sans-serif;
   font-weight: 600;
@@ -142,8 +125,6 @@ const ExpiryDate = styled.span`
   text-transform: uppercase;
   color: #202020;
 `;
-
-// Modal Styles
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -156,13 +137,11 @@ const ModalOverlay = styled.div`
   align-items: center;
   z-index: 2000;
   animation: fadeIn 0.2s ease;
-
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
   }
 `;
-
 const ModalContent = styled.div`
   background: white;
   border-radius: 10px;
@@ -173,7 +152,6 @@ const ModalContent = styled.div`
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
-
   @keyframes slideUp {
     from {
       opacity: 0;
@@ -185,14 +163,12 @@ const ModalContent = styled.div`
     }
   }
 `;
-
 const ModalHeader = styled.div`
   padding: 24px;
   background: #F8FAFF;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
 `;
-
 const ModalTitle = styled.h2`
   font-size: 20px;
   font-weight: 700;
@@ -200,27 +176,23 @@ const ModalTitle = styled.h2`
   color: #000;
   margin: 0;
 `;
-
 const ModalContentInner = styled.div`
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 `;
-
 const InputContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
 `;
-
 const InputLabel = styled.label`
   font-size: 13px;
   font-weight: 600;
   font-family: 'Raleway', sans-serif;
   color: #000;
 `;
-
 const CardElementContainer = styled.div`
   width: 100%;
   padding: 16px;
@@ -228,17 +200,14 @@ const CardElementContainer = styled.div`
   border-radius: 9px;
   border: 1px solid transparent;
   transition: all 0.2s ease;
-
   &:focus-within {
     border-color: #00BC7D;
     background: #F0FDF9;
   }
-
   .StripeElement {
     font-family: 'Raleway', sans-serif;
   }
 `;
-
 const ConfirmButton = styled.button`
   background: #00BC7D;
   color: white;
@@ -251,46 +220,37 @@ const ConfirmButton = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 16px;
-
   &:hover {
     background: #00A66A;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
   }
-
   &:active {
     transform: translateY(0);
   }
-
   &:disabled {
     background: #CCCCCC;
     cursor: not-allowed;
     transform: none;
   }
 `;
-
-// Page Styles
 const PageContainer = styled.div`
   min-height: 100vh;
   background: white;
   padding-top: 80px;
   padding-bottom: 60px;
 `;
-
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 24px;
-
   @media (max-width: 768px) {
     padding: 24px 16px;
   }
 `;
-
 const Header = styled.div`
   margin-bottom: 32px;
 `;
-
 const Title = styled.h1`
   font-size: 28px;
   font-weight: 700;
@@ -300,40 +260,33 @@ const Title = styled.h1`
   color: #000;
   margin: 0;
 `;
-
 const SavedCardsContainer = styled.div`
   min-height: 200px;
   margin-bottom: 40px;
   display: flex;
   align-items: center;
 `;
-
 const CardsWrapper = styled.div`
   display: flex;
   gap: 16px;
   overflow-x: auto;
   padding: 16px 0;
   width: 100%;
-
   &::-webkit-scrollbar {
     height: 8px;
   }
-
   &::-webkit-scrollbar-track {
     background: #F9F9F9;
     border-radius: 4px;
   }
-
   &::-webkit-scrollbar-thumb {
     background: #00BC7D;
     border-radius: 4px;
   }
-
   &::-webkit-scrollbar-thumb:hover {
     background: #00A66A;
   }
 `;
-
 const NoCardsContainer = styled.div`
   display: flex;
   align-items: center;
@@ -341,14 +294,12 @@ const NoCardsContainer = styled.div`
   width: 100%;
   padding: 16px 0;
 `;
-
 const NoCardsText = styled.p`
   font-family: 'Raleway', sans-serif;
   font-size: 14px;
   color: #666;
   margin: 0;
 `;
-
 const AddButton = styled.button`
   width: 45px;
   height: 160px;
@@ -361,25 +312,21 @@ const AddButton = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   flex-shrink: 0;
-
   &:hover {
     background: #00A66A;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
   }
-
   &:active {
     transform: translateY(0);
   }
 `;
-
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 200px;
 `;
-
 const Spinner = styled.div`
   width: 40px;
   height: 40px;
@@ -387,19 +334,16 @@ const Spinner = styled.div`
   border-top: 4px solid #00BC7D;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
 `;
-
 const OrdersSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
 `;
-
 const OrderItem = styled.div`
   background: #ECFDF5;
   border-radius: 8px;
@@ -408,33 +352,28 @@ const OrderItem = styled.div`
   align-items: center;
   gap: 16px;
   transition: all 0.3s ease;
-
   &:hover {
     transform: translateX(4px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 `;
-
 const OrderIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 `;
-
 const OrderDetails = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
 `;
-
 const OrderDate = styled.span`
   font-family: 'Raleway', sans-serif;
   font-size: 10px;
   color: #000;
 `;
-
 const OrderNumber = styled.span`
   font-family: 'Raleway', sans-serif;
   font-size: 14px;
@@ -442,7 +381,6 @@ const OrderNumber = styled.span`
   line-height: 18px;
   color: #202020;
 `;
-
 const OrderAmount = styled.span`
   font-family: 'Raleway', sans-serif;
   font-weight: 700;
@@ -451,7 +389,6 @@ const OrderAmount = styled.span`
   color: #000;
   flex-shrink: 0;
 `;
-
 const NoOrdersText = styled.p`
   font-family: 'Raleway', sans-serif;
   font-size: 14px;
@@ -460,23 +397,20 @@ const NoOrdersText = styled.p`
   margin-top: 32px;
 `;
 
-// PaymentCard Component
 const PaymentCard = ({ id, cardHolder, cardNumber, expiryDate, cardBrand, isSelected = false, showTick = false, onRemove }) => {
+  const { t } = useTranslation();
   const maskedCardNumber = `•••• •••• •••• ${cardNumber.slice(-4)}`;
-
   const renderMastercardLogo = () => (
     <CirclesContainer>
       <CircleLeft />
       <CircleRight />
     </CirclesContainer>
   );
-
   const renderVisaLogo = () => (
     <LogoContainer>
       <VisaText>VISA</VisaText>
     </LogoContainer>
   );
-
   const renderCardLogo = () => {
     switch (cardBrand?.toLowerCase()) {
       case 'visa':
@@ -486,25 +420,22 @@ const PaymentCard = ({ id, cardHolder, cardNumber, expiryDate, cardBrand, isSele
       default:
         return (
           <LogoContainer>
-            <UnknownBrandText>Unknown Brand</UnknownBrandText>
+            <UnknownBrandText>{t('UnknownBrand')}</UnknownBrandText>
           </LogoContainer>
         );
     }
   };
-
   const handleRemove = () => {
     if (!id) {
       console.error('Payment Method ID is missing');
-      alert('Failed to delete card: Payment Method ID is missing');
+      alert(t('FailedToDeleteCardMissingId'));
       return;
     }
-
-    const confirmed = window.confirm('Are you sure you want to delete this card?');
+    const confirmed = window.confirm(t('ConfirmDeleteCard'));
     if (confirmed && onRemove) {
       onRemove(id);
     }
   };
-
   return (
     <Card>
       <TopRow>
@@ -519,9 +450,7 @@ const PaymentCard = ({ id, cardHolder, cardNumber, expiryDate, cardBrand, isSele
           )}
         </IconContainer>
       </TopRow>
-
       <CardNumber>{maskedCardNumber}</CardNumber>
-
       <BottomRow>
         <CardHolder>{cardHolder.toUpperCase()}</CardHolder>
         <ExpiryDate>{expiryDate}</ExpiryDate>
@@ -530,8 +459,8 @@ const PaymentCard = ({ id, cardHolder, cardNumber, expiryDate, cardBrand, isSele
   );
 };
 
-// AddCardModal Component
 const AddCardModal = ({ visible, onClose, stripeCustomerId, onCardAdded }) => {
+  const { t } = useTranslation();
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -546,10 +475,9 @@ const AddCardModal = ({ visible, onClose, stripeCustomerId, onCardAdded }) => {
 
   const initiateSetupIntent = async () => {
     if (!stripeCustomerId) {
-      alert('No Stripe customer found');
+      alert(t('NoStripeCustomerFound'));
       return;
     }
-
     try {
       setLoading(true);
       const response = await fetch(`${supabaseUrl}/functions/v1/create-setup-intent`, {
@@ -561,17 +489,14 @@ const AddCardModal = ({ visible, onClose, stripeCustomerId, onCardAdded }) => {
         },
         body: JSON.stringify({ customerId: stripeCustomerId }),
       });
-
       if (!response.ok) {
         throw new Error(`Setup Intent failed with status: ${response.status}`);
       }
-
       const { clientSecret } = await response.json();
       setClientSecret(clientSecret);
-      console.log('Setup Intent initiated, clientSecret:', clientSecret);
     } catch (error) {
       console.error('Setup Intent Error:', error.message);
-      alert(`Failed to initiate Setup Intent: ${error.message}`);
+      alert(`${t('FailedToInitiateSetupIntent')}: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -579,25 +504,20 @@ const AddCardModal = ({ visible, onClose, stripeCustomerId, onCardAdded }) => {
 
   const saveCard = async () => {
     if (!stripe || !elements) {
-      alert('Stripe not initialized');
+      alert(t('StripeNotInitialized'));
       return;
     }
-
     if (!clientSecret) {
-      alert('No Setup Intent available');
+      alert(t('NoSetupIntentAvailable'));
       return;
     }
-
     if (!cardComplete) {
-      alert('Please complete card details');
+      alert(t('CompleteCardDetails'));
       return;
     }
-
     try {
       setLoading(true);
-
       const cardElement = elements.getElement(CardElement);
-
       const { setupIntent, error: confirmError } = await stripe.confirmCardSetup(
         clientSecret,
         {
@@ -606,15 +526,11 @@ const AddCardModal = ({ visible, onClose, stripeCustomerId, onCardAdded }) => {
           },
         }
       );
-
       if (confirmError) {
-        throw new Error(`Setup Intent confirmation failed: ${confirmError.message}`);
+        throw new Error(`${t('SetupIntentConfirmationFailed')}: ${confirmError.message}`);
       }
-
-      console.log('Setup Intent Status:', setupIntent.status);
-
       if (setupIntent.status === 'succeeded' || setupIntent.status === 'processing') {
-        alert('Card saved successfully!');
+        alert(t('CardSavedSuccessfully'));
         onCardAdded();
         setClientSecret(null);
         setCardComplete(false);
@@ -622,27 +538,26 @@ const AddCardModal = ({ visible, onClose, stripeCustomerId, onCardAdded }) => {
           onClose();
         }, 1000);
       } else {
-        throw new Error(`Setup Intent failed with status: ${setupIntent.status}`);
+        throw new Error(`${t('SetupIntentFailed')}: ${setupIntent.status}`);
       }
     } catch (error) {
       console.error('Card Save Error:', error.message);
-      alert(`Failed to save card: ${error.message}`);
+      alert(`${t('FailedToSaveCard')}: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   if (!visible) return null;
-
   return (
     <ModalOverlay onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <ModalTitle>Add Card</ModalTitle>
+          <ModalTitle>{t('AddCard')}</ModalTitle>
         </ModalHeader>
         <ModalContentInner>
           <InputContainer>
-            <InputLabel>Card Details</InputLabel>
+            <InputLabel>{t('CardDetails')}</InputLabel>
             <CardElementContainer>
               <CardElement
                 options={{
@@ -661,7 +576,6 @@ const AddCardModal = ({ visible, onClose, stripeCustomerId, onCardAdded }) => {
                   },
                 }}
                 onChange={(e) => {
-                  console.log('Card details updated:', e.complete);
                   setCardComplete(e.complete);
                 }}
               />
@@ -671,7 +585,7 @@ const AddCardModal = ({ visible, onClose, stripeCustomerId, onCardAdded }) => {
             onClick={saveCard}
             disabled={loading || !cardComplete || !clientSecret}
           >
-            {loading ? 'Processing...' : 'Confirm'}
+            {loading ? t('Processing') : t('Confirm')}
           </ConfirmButton>
         </ModalContentInner>
       </ModalContent>
@@ -679,11 +593,10 @@ const AddCardModal = ({ visible, onClose, stripeCustomerId, onCardAdded }) => {
   );
 };
 
-// Main PaymentMethods Component
 const PaymentMethods = () => {
   const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
-
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [savedCards, setSavedCards] = useState([]);
   const [stripeCustomerId, setStripeCustomerId] = useState(null);
@@ -693,7 +606,6 @@ const PaymentMethods = () => {
   useEffect(() => {
     const fetchStripeCustomerId = async () => {
       if (!user) return;
-
       try {
         setLoading(true);
         const { data, error } = await supabase
@@ -701,27 +613,23 @@ const PaymentMethods = () => {
           .select('stripe_customer_id')
           .eq('user_id', user.id)
           .single();
-
         if (error) throw error;
-
         if (data?.stripe_customer_id) {
           setStripeCustomerId(data.stripe_customer_id);
         } else {
-          alert('Stripe customer ID not found');
+          alert(t('StripeCustomerIdNotFound'));
         }
       } catch (error) {
-        alert(`Error: ${error.message}`);
+        alert(`${t('Error')}: ${error.message}`);
       } finally {
         setLoading(false);
       }
     };
-
     fetchStripeCustomerId();
-  }, [user]);
+  }, [user, t]);
 
   const fetchSavedCards = async () => {
     if (!stripeCustomerId) return;
-
     try {
       setLoading(true);
       const response = await fetch(`${supabaseUrl}/functions/v1/get-saved-cards`, {
@@ -733,16 +641,14 @@ const PaymentMethods = () => {
         },
         body: JSON.stringify({ customerId: stripeCustomerId }),
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
-
       const { paymentMethods } = await response.json();
       setSavedCards(paymentMethods || []);
     } catch (error) {
-      alert(`Failed to fetch saved cards: ${error.message}`);
+      alert(`${t('FailedToFetchSavedCards')}: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -750,7 +656,6 @@ const PaymentMethods = () => {
 
   const fetchOrders = async () => {
     if (!user) return;
-
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -758,11 +663,10 @@ const PaymentMethods = () => {
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setOrders(data || []);
     } catch (error) {
-      alert(`Error: ${error.message}`);
+      alert(`${t('Error')}: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -786,23 +690,19 @@ const PaymentMethods = () => {
         },
         body: JSON.stringify({ paymentMethodId: id }),
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
-
       const { success, error } = await response.json();
       if (!success || error) {
         throw new Error(error || 'Unknown error');
       }
-
-      console.log('Payment method deleted successfully:', id);
-      alert('Card deleted successfully');
+      alert(t('CardDeletedSuccessfully'));
       setSavedCards(savedCards.filter(card => card.id !== id));
     } catch (error) {
       console.error('Error deleting payment method:', error.message);
-      alert(`Failed to delete card: ${error.message}`);
+      alert(`${t('FailedToDeleteCard')}: ${error.message}`);
     }
   };
 
@@ -832,9 +732,8 @@ const PaymentMethods = () => {
       />
       <Container>
         <Header>
-          <Title>Payment Methods</Title>
+          <Title>{t('PaymentMethods')}</Title>
         </Header>
-
         <SavedCardsContainer>
           {loading && !savedCards.length ? (
             <LoadingContainer>
@@ -846,7 +745,7 @@ const PaymentMethods = () => {
                 <PaymentCard
                   key={card.id}
                   id={card.id}
-                  cardHolder={card.billing_details?.name || 'Unknown'}
+                  cardHolder={card.billing_details?.name || t('Unknown')}
                   cardNumber={card.card.last4}
                   expiryDate={`${card.card.exp_month}/${card.card.exp_year.toString().slice(-2)}`}
                   cardBrand={card.card.brand}
@@ -860,14 +759,13 @@ const PaymentMethods = () => {
             </CardsWrapper>
           ) : (
             <NoCardsContainer>
-              <NoCardsText>No saved cards</NoCardsText>
+              <NoCardsText>{t('NoSavedCards')}</NoCardsText>
               <AddButton onClick={() => setIsAddCardModalVisible(true)}>
                 <IoAdd size={24} color="#FFFFFF" />
               </AddButton>
             </NoCardsContainer>
           )}
         </SavedCardsContainer>
-
         <OrdersSection>
           {loading && !orders.length ? (
             <LoadingContainer>
@@ -887,17 +785,16 @@ const PaymentMethods = () => {
                   </OrderIcon>
                   <OrderDetails>
                     <OrderDate>{formatDate(order.created_at)}</OrderDate>
-                    <OrderNumber>Order #{order.id}</OrderNumber>
+                     <OrderNumber>{t('Order')} #{order.id}</OrderNumber>
                   </OrderDetails>
                   <OrderAmount>-${order.amount.toFixed(2)}</OrderAmount>
                 </OrderItem>
               );
             })
           ) : (
-            <NoOrdersText>No orders found</NoOrdersText>
+            <NoOrdersText>{t('NoOrdersFound')}</NoOrdersText>
           )}
         </OrdersSection>
-
         <AddCardModal
           visible={isAddCardModalVisible}
           onClose={() => setIsAddCardModalVisible(false)}

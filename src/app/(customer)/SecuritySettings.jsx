@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import ShopHeader from '../../components/ShopHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -11,21 +12,17 @@ const PageContainer = styled.div`
   padding-top: 80px;
   padding-bottom: 60px;
 `;
-
 const Container = styled.div`
   max-width: 600px;
   margin: 0 auto;
   padding: 40px 24px;
-
   @media (max-width: 768px) {
     padding: 24px 16px;
   }
 `;
-
 const Header = styled.div`
   margin-bottom: 32px;
 `;
-
 const Title = styled.h1`
   font-size: 28px;
   font-weight: 700;
@@ -35,7 +32,6 @@ const Title = styled.h1`
   color: #000;
   margin: 0 0 8px 0;
 `;
-
 const Subtitle = styled.p`
   font-size: 16px;
   font-weight: 500;
@@ -43,26 +39,22 @@ const Subtitle = styled.p`
   color: #666;
   margin: 0;
 `;
-
 const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 24px;
 `;
-
 const SettingsBox = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
 `;
-
 const Label = styled.label`
   font-size: 16px;
   font-weight: 600;
   font-family: 'Raleway', sans-serif;
   color: #000;
 `;
-
 const Input = styled.input`
   width: 100%;
   padding: 16px;
@@ -73,23 +65,19 @@ const Input = styled.input`
   font-family: 'Raleway', sans-serif;
   outline: none;
   transition: all 0.2s ease;
-
   &:focus {
     border-color: #00BC7D;
     background: white;
   }
-
   &::placeholder {
     color: #666;
   }
-
   &:disabled {
     background: #F0F0F0;
     color: #666;
     cursor: not-allowed;
   }
 `;
-
 const UpdateButton = styled.button`
   width: 100%;
   padding: 16px 24px;
@@ -104,23 +92,19 @@ const UpdateButton = styled.button`
   transition: all 0.3s ease;
   margin-top: 8px;
   box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
-
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 188, 125, 0.4);
   }
-
   &:active {
     transform: translateY(0);
   }
-
   &:disabled {
     cursor: not-allowed;
     opacity: 0.6;
     transform: none;
   }
 `;
-
 const HelperText = styled.p`
   font-size: 14px;
   font-family: 'Raleway', sans-serif;
@@ -131,73 +115,60 @@ const HelperText = styled.p`
 const SecuritySettings = () => {
   const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
-
+  const { t } = useTranslation();
   const [confirmCurrentPassword, setConfirmCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Password display
   const currentPasswordLength = user?.user_metadata?.password_length || 8;
   const currentPasswordDisplay = '•'.repeat(currentPasswordLength);
 
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
-
     if (!user) {
-      alert('No user logged in');
+      alert(t('NoUserLoggedIn'));
       return;
     }
-
     if (!confirmCurrentPassword) {
-      alert('Please enter your current password');
+      alert(t('EnterCurrentPassword'));
       return;
     }
-
     if (newPassword.length < 6) {
-      alert('New password must be at least 6 characters');
+      alert(t('PasswordMinLength'));
       return;
     }
-
     if (newPassword !== confirmNewPassword) {
-      alert('New passwords do not match');
+      alert(t('PasswordsDoNotMatch'));
       return;
     }
-
     setIsUpdating(true);
-
     try {
-      // Verify current password
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: confirmCurrentPassword,
       });
-
       if (loginError) {
-        alert('Current password is incorrect');
+        alert(t('CurrentPasswordIncorrect'));
         setIsUpdating(false);
         return;
       }
-
-      // Update to new password
-      const { error: updateError } = await supabase.auth.updateUser({ 
-        password: newPassword 
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
       });
-
       if (updateError) {
         alert(updateError.message);
         setIsUpdating(false);
         return;
       }
-
-      alert('Password updated successfully!');
+      alert(t('PasswordUpdatedSuccessfully'));
       setConfirmCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
       navigate('/Settings');
     } catch (error) {
       console.error('Error updating password:', error.message);
-      alert('Failed to update password');
+      alert(t('FailedToUpdatePassword'));
     } finally {
       setIsUpdating(false);
     }
@@ -214,61 +185,56 @@ const SecuritySettings = () => {
       />
       <Container>
         <Header>
-          <Title>Security Settings</Title>
-          <Subtitle>Update your password to keep your account secure</Subtitle>
+          <Title>{t('SecuritySettings')}</Title>
+          <Subtitle>{t('UpdatePassword')}</Subtitle>
         </Header>
-
         <Form onSubmit={handlePasswordUpdate}>
           <SettingsBox>
-            <Label>Current Password</Label>
+            <Label>{t('CurrentPassword')}</Label>
             <Input
               type="password"
               value={currentPasswordDisplay}
               disabled
             />
-            <HelperText>Your current password is hidden for security</HelperText>
+            <HelperText>{t('CurrentPasswordHidden')}</HelperText>
           </SettingsBox>
-
           <SettingsBox>
-            <Label>Confirm Current Password</Label>
+            <Label>{t('ConfirmCurrentPassword')}</Label>
             <Input
               type="password"
               value={confirmCurrentPassword}
               onChange={(e) => setConfirmCurrentPassword(e.target.value)}
-              placeholder="Enter current password"
+              placeholder={t('EnterCurrentPassword')}
               required
               disabled={isUpdating}
             />
           </SettingsBox>
-
           <SettingsBox>
-            <Label>New Password</Label>
+            <Label>{t('NewPassword')}</Label>
             <Input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Enter new password (min 6 characters)"
+              placeholder={t('EnterNewPassword')}
               required
               minLength={6}
               disabled={isUpdating}
             />
           </SettingsBox>
-
           <SettingsBox>
-            <Label>Confirm New Password</Label>
+            <Label>{t('ConfirmNewPassword')}</Label>
             <Input
               type="password"
               value={confirmNewPassword}
               onChange={(e) => setConfirmNewPassword(e.target.value)}
-              placeholder="Re-enter new password"
+              placeholder={t('ReEnterNewPassword')}
               required
               minLength={6}
               disabled={isUpdating}
             />
           </SettingsBox>
-
           <UpdateButton type="submit" disabled={isUpdating}>
-            {isUpdating ? 'Updating...' : 'Update Password'}
+            {isUpdating ? t('Updating') : t('UpdatePassword')}
           </UpdateButton>
         </Form>
       </Container>

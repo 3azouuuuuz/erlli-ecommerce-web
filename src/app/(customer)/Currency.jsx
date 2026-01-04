@@ -1,8 +1,10 @@
+// REPLACE the entire file with:
 import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import ShopHeader from '../../components/ShopHeader';
 import { useAuth } from '../../contexts/AuthContext';
+import CurrencySelector from '../../components/CurrencySelector';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -14,14 +16,10 @@ const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 24px;
-`;
 
-const Title = styled.h1`
-  font-size: 28px;
-  font-weight: 700;
-  font-family: 'Raleway', sans-serif;
-  color: #1a1a2e;
-  margin-bottom: 24px;
+  @media (max-width: 768px) {
+    padding: 24px 16px;
+  }
 `;
 
 const Currency = () => {
@@ -38,8 +36,7 @@ const Currency = () => {
         onLogout={logout}
       />
       <Container>
-        <Title>Choose Currency</Title>
-        <p>Currency selection page coming soon...</p>
+        <CurrencySelector />
       </Container>
     </PageContainer>
   );

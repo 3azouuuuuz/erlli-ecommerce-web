@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { IoCheckmarkCircle } from 'react-icons/io5';
 import countries from '../assets/countries';
-
+import { useTranslation } from 'react-i18next';
 // Group countries by first letter
 const groupedCountries = countries
   .sort((a, b) => a.name.localeCompare(b.name))
@@ -194,7 +194,7 @@ const CountryText = styled.span`
 const CountrySelector = () => {
   const navigate = useNavigate();
   const { user, profile, logout, refreshProfile } = useAuth();
-  
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCountry, setSelectedCountry] = useState(profile?.country || '');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -252,60 +252,57 @@ const CountrySelector = () => {
   };
 
   return (
-    <PageContainer>
-      <ShopHeader
-        isConnected={!!user}
-        avatarUrl={profile?.avatar_url}
-        userRole={profile?.role}
-        userEmail={profile?.email || user?.email}
-        onLogout={logout}
-      />
-      <Container>
-        <Header>
-          <Title>Settings</Title>
-        </Header>
-
-        <Label>Country</Label>
-
-        <SearchInputContainer>
-          <SearchInput
-            type="text"
-            placeholder={selectedCountry || 'Choose Your Country'}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            hasValue={searchQuery.length > 0}
-            isSelected={!!selectedCountry && selectedCountry !== 'Choose Your Country'}
-          />
-          {selectedCountry && selectedCountry !== 'Choose Your Country' && !searchQuery && (
-            <CheckmarkIcon />
-          )}
-        </SearchInputContainer>
-
-        <CountryListContainer>
-          {filteredSections.map((section) => (
-            <SectionContainer key={section.title}>
-              <SectionHeader>
-                <SectionTitle>{section.title}</SectionTitle>
-              </SectionHeader>
-              {section.data.map((country) => (
-                <CountryItem
-                  key={country.name}
-                  onClick={() => handleCountrySelect(country)}
-                  disabled={isUpdating}
-                >
-                  <FlagImage
-                    src={`https://flagcdn.com/w40/${country.isoCode.toLowerCase()}.png`}
-                    alt={country.name}
-                  />
-                  <CountryText>{country.name}</CountryText>
-                </CountryItem>
-              ))}
-            </SectionContainer>
-          ))}
-        </CountryListContainer>
-      </Container>
-    </PageContainer>
-  );
+  <PageContainer>
+    <ShopHeader
+      isConnected={!!user}
+      avatarUrl={profile?.avatar_url}
+      userRole={profile?.role}
+      userEmail={profile?.email || user?.email}
+      onLogout={logout}
+    />
+    <Container>
+      <Header>
+        <Title>{t('Settings')}</Title>
+      </Header>
+      <Label>{t('Country')}</Label>
+      <SearchInputContainer>
+        <SearchInput
+          type="text"
+          placeholder={selectedCountry || t('ChooseYourCountry')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          hasValue={searchQuery.length > 0}
+          isSelected={!!selectedCountry && selectedCountry !== t('ChooseYourCountry')}
+        />
+        {selectedCountry && selectedCountry !== t('ChooseYourCountry') && !searchQuery && (
+          <CheckmarkIcon />
+        )}
+      </SearchInputContainer>
+      <CountryListContainer>
+        {filteredSections.map((section) => (
+          <SectionContainer key={section.title}>
+            <SectionHeader>
+              <SectionTitle>{section.title}</SectionTitle>
+            </SectionHeader>
+            {section.data.map((country) => (
+              <CountryItem
+                key={country.name}
+                onClick={() => handleCountrySelect(country)}
+                disabled={isUpdating}
+              >
+                <FlagImage
+                  src={`https://flagcdn.com/w40/${country.isoCode.toLowerCase()}.png`}
+                  alt={country.name}
+                />
+                <CountryText>{country.name}</CountryText>
+              </CountryItem>
+            ))}
+          </SectionContainer>
+        ))}
+      </CountryListContainer>
+    </Container>
+  </PageContainer>
+);
 };
 
 export default CountrySelector;

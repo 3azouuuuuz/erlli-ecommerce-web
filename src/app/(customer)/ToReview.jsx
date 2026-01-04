@@ -4,7 +4,8 @@ import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import ProfileHeader from '../../components/ProfileHeader';
-import { IoCheckmarkCircle, IoStar, IoStarOutline, IoClose } from 'react-icons/io5';
+import { useTranslation } from 'react-i18next';
+import { IoCheckmarkCircle, IoStar, IoStarOutline, IoClose, IoSparkles } from 'react-icons/io5';
 import RoundShapeList from '../../components/RoundShapeList';
 
 const INPOST_API_TOKEN = 'YOUR_NEW_TOKEN';
@@ -15,9 +16,12 @@ const PageContainer = styled.div`
 `;
 
 const Container = styled.div`
-  padding: 0 16px 20px;
+  padding: 80px 16px 20px;
   max-width: 1200px;
   margin: 0 auto;
+  @media (max-width: 768px) {
+    padding-top: 100px;
+  }
 `;
 
 const HeaderContent = styled.div`
@@ -59,7 +63,7 @@ const OrderItem = styled.div`
   border-radius: 10px;
   border: 1px solid #f0f0f0;
   transition: all 0.2s ease;
-  
+
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     border-color: #00BC7D;
@@ -70,7 +74,7 @@ const OrderHeader = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
-
+  cursor: pointer;
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
@@ -81,7 +85,6 @@ const ImagesContainer = styled.div`
   width: 100px;
   height: 100px;
   margin-right: 12px;
-
   @media (max-width: 768px) {
     width: 100%;
     height: 150px;
@@ -173,7 +176,6 @@ const GridImage = styled.img`
 const DetailsContainer = styled.div`
   flex: 1;
   margin-left: 8px;
-
   @media (max-width: 768px) {
     margin-left: 0;
     width: 100%;
@@ -267,7 +269,6 @@ const ActionButton = styled.button`
   border: none;
   background: #00BC7D;
   color: #FFFFFF;
-
   &:hover {
     opacity: 0.9;
     transform: scale(1.02);
@@ -275,12 +276,10 @@ const ActionButton = styled.button`
 `;
 
 const ReviewButton = styled(ActionButton)`
-  background: white;
-  border: 2px solid #00BC7D;
-  color: #00BC7D;
-
+  background: linear-gradient(135deg, #00BC7D 0%, #00E89D 100%);
+  box-shadow: 0 2px 8px rgba(0, 188, 125, 0.3);
   &:hover {
-    background: #f0fdf8;
+    box-shadow: 0 4px 12px rgba(0, 188, 125, 0.4);
   }
 `;
 
@@ -307,20 +306,20 @@ const Loader = styled.div`
   border-top: 4px solid #00BC7D;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
 `;
 
-// Review Section Styles (same as Orders.jsx)
+// Enhanced Review Section Styles
 const ReviewSection = styled.div`
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #F0FDF9 0%, #E6FCF5 100%);
+  border-radius: 12px;
+  border: 2px solid #D0FAE5;
   animation: slideDown 0.3s ease;
-
   @keyframes slideDown {
     from {
       opacity: 0;
@@ -333,12 +332,24 @@ const ReviewSection = styled.div`
   }
 `;
 
+const ReviewSectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+`;
+
+const SparkleIcon = styled(IoSparkles)`
+  font-size: 24px;
+  color: #00BC7D;
+`;
+
 const ReviewSectionTitle = styled.h3`
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   font-family: 'Raleway', sans-serif;
-  color: #202020;
-  margin: 0 0 12px 0;
+  color: #00BC7D;
+  margin: 0;
 `;
 
 const ReviewItemsList = styled.div`
@@ -351,16 +362,17 @@ const ReviewItemCard = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 12px;
-  background: #f9f9f9;
-  border-radius: 8px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
-
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
   &:hover {
-    background: #f0f0f0;
+    border-color: #00BC7D;
+    box-shadow: 0 4px 12px rgba(0, 188, 125, 0.15);
+    transform: translateY(-2px);
   }
-
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
@@ -368,17 +380,17 @@ const ReviewItemCard = styled.div`
 `;
 
 const ReviewItemImage = styled.img`
-  width: 60px;
-  height: 60px;
-  border-radius: 5px;
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
   object-fit: cover;
-  margin-right: 12px;
-
+  margin-right: 16px;
+  border: 2px solid #E6FCF5;
   @media (max-width: 768px) {
     width: 100%;
-    height: 120px;
+    height: 140px;
     margin-right: 0;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
 `;
 
@@ -387,64 +399,92 @@ const ReviewItemDetails = styled.div`
 `;
 
 const ReviewItemDescription = styled.p`
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   font-family: 'Raleway', sans-serif;
   color: #202020;
-  margin: 0 0 4px 0;
+  margin: 0 0 6px 0;
 `;
 
 const ReviewItemDate = styled.span`
-  font-size: 12px;
+  font-size: 13px;
   font-family: 'Raleway', sans-serif;
   color: #666;
 `;
 
 const SmallReviewButton = styled.button`
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: white;
-  border: 2px solid #00BC7D;
-  color: #00BC7D;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #00BC7D 0%, #00E89D 100%);
+  border: none;
+  color: white;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   font-family: 'Raleway', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-left: 8px;
-
+  margin-left: 12px;
+  box-shadow: 0 2px 6px rgba(0, 188, 125, 0.3);
   &:hover {
-    background: #f0fdf8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 188, 125, 0.4);
   }
-
   @media (max-width: 768px) {
     margin-left: 0;
-    margin-top: 8px;
+    margin-top: 12px;
     width: 100%;
   }
 `;
 
+const ReviewedBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #D0FAE5;
+  border-radius: 20px;
+  margin-left: 12px;
+  @media (max-width: 768px) {
+    margin-left: 0;
+    margin-top: 12px;
+  }
+`;
+
+const ReviewedText = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Raleway', sans-serif;
+  color: #00BC7D;
+`;
+
 const ReviewForm = styled.div`
-  margin-top: 12px;
-  padding: 16px;
-  background: #f8faff;
-  border-radius: 8px;
+  margin-top: 16px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #00BC7D;
   animation: slideDown 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 188, 125, 0.1);
 `;
 
 const ReviewFormHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #F0FDF9;
 `;
 
 const ReviewFormTitle = styled.h4`
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   font-family: 'Raleway', sans-serif;
-  color: #202020;
+  color: #00BC7D;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const CloseButton = styled.button`
@@ -453,17 +493,18 @@ const CloseButton = styled.button`
   cursor: pointer;
   padding: 4px;
   color: #666;
-  transition: color 0.2s ease;
-
+  transition: all 0.2s ease;
+  border-radius: 50%;
   &:hover {
-    color: #202020;
+    color: #FF0000;
+    background: #FFE6E6;
   }
 `;
 
 const ReviewFormContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 `;
 
 const ProfileSection = styled.div`
@@ -471,6 +512,9 @@ const ProfileSection = styled.div`
   flex-direction: row;
   align-items: flex-start;
   gap: 12px;
+  padding: 12px;
+  background: #F9F9F9;
+  border-radius: 8px;
 `;
 
 const ProfileImageWrapper = styled.div`
@@ -483,14 +527,15 @@ const ProductInfo = styled.div`
 `;
 
 const ProductDescription = styled.p`
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   font-family: 'Raleway', sans-serif;
   color: #202020;
   margin: 0 0 4px 0;
 `;
 
 const OrderNumberText = styled.p`
-  font-size: 12px;
+  font-size: 13px;
   font-family: 'Raleway', sans-serif;
   color: #666;
   margin: 0;
@@ -501,10 +546,15 @@ const RatingContainer = styled.div`
   flex-direction: row;
   gap: 8px;
   align-items: center;
+  padding: 12px;
+  background: #FFF9E6;
+  border-radius: 8px;
+  border: 2px solid #FFE6A0;
 `;
 
 const RatingLabel = styled.span`
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   font-family: 'Raleway', sans-serif;
   color: #666;
   margin-right: 8px;
@@ -514,76 +564,85 @@ const StarButton = styled.button`
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
-  transition: transform 0.2s ease;
-
+  padding: 4px;
+  transition: all 0.2s ease;
+  border-radius: 50%;
   &:hover {
-    transform: scale(1.1);
+    transform: scale(1.2);
+    background: rgba(255, 215, 0, 0.1);
+  }
+  &:active {
+    transform: scale(1);
   }
 `;
 
 const CommentInput = styled.textarea`
   background: white;
   border-radius: 8px;
-  padding: 12px;
-  font-size: 14px;
+  padding: 16px;
+  font-size: 15px;
   font-family: 'Raleway', sans-serif;
   color: #333;
-  height: 100px;
+  height: 120px;
   width: 100%;
-  border: 1px solid #e0e0e0;
+  border: 2px solid #E6FCF5;
   resize: none;
   outline: none;
-
+  transition: all 0.2s ease;
   &::placeholder {
     color: #999;
   }
-
   &:focus {
     border-color: #00BC7D;
+    box-shadow: 0 0 0 3px rgba(0, 188, 125, 0.1);
   }
 `;
 
 const SubmitButton = styled.button`
-  background: #00BC7D;
-  border-radius: 8px;
-  padding: 12px 24px;
+  background: linear-gradient(135deg, #00BC7D 0%, #00E89D 100%);
+  border-radius: 10px;
+  padding: 14px 28px;
   border: none;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: #FFFFFF;
   font-family: 'Raleway', sans-serif;
   cursor: pointer;
-  transition: all 0.2s ease;
-
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
   &:hover {
-    opacity: 0.9;
-    transform: scale(1.02);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 188, 125, 0.4);
+  }
+  &:active {
+    transform: translateY(0);
   }
 `;
 
 const SuccessMessage = styled.div`
-  padding: 12px;
-  background: #d0fae5;
-  border-radius: 8px;
+  padding: 16px;
+  background: linear-gradient(135deg, #D0FAE5 0%, #B8F5D8 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 16px;
   animation: slideDown 0.3s ease;
+  border: 2px solid #00BC7D;
 `;
 
 const SuccessText = styled.p`
-  font-size: 14px;
+  font-size: 15px;
   font-family: 'Raleway', sans-serif;
   color: #00BC7D;
   margin: 0;
-  font-weight: 600;
+  font-weight: 700;
 `;
 
 const ToReview = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -620,7 +679,6 @@ const ToReview = () => {
       setLoading(false);
       return;
     }
-
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -631,8 +689,26 @@ const ToReview = () => {
 
       if (error) throw error;
 
+      // Fetch existing reviews to mark already reviewed items
+      const orderIds = data.map(o => o.id);
+      let existingReviews = [];
+      if (orderIds.length > 0) {
+        const { data: reviewsData } = await supabase
+          .from('reviews')
+          .select('order_id, product_id')
+          .in('order_id', orderIds);
+        existingReviews = reviewsData || [];
+      }
+
+      // Mark items with existing reviews
       const updatedOrders = await Promise.all(
         data.map(async (order) => {
+          order.items.forEach((item) => {
+            item.has_review = existingReviews.some(
+              r => r.order_id === order.id && r.product_id === item.id
+            );
+          });
+
           if (order.tracking_number && order.delivery_status === 'shipped') {
             const trackingData = await fetchTrackingStatus(order.tracking_number);
             if (trackingData) {
@@ -650,6 +726,17 @@ const ToReview = () => {
         })
       );
 
+      // Pre-populate submittedReviews with existing reviews
+      const initialReviewed = new Set();
+      updatedOrders.forEach((order) => {
+        order.items.forEach((item, idx) => {
+          if (item.has_review) {
+            initialReviewed.add(`${order.id}-${idx}`);
+          }
+        });
+      });
+      setSubmittedReviews(initialReviewed);
+
       setOrders(updatedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error.message);
@@ -661,9 +748,7 @@ const ToReview = () => {
 
   useEffect(() => {
     if (!profile?.id) return;
-
     let pollInterval = null;
-
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && profile?.id) {
         console.log('Page is visible, starting polling...');
@@ -677,17 +762,14 @@ const ToReview = () => {
         if (pollInterval) clearInterval(pollInterval);
       }
     };
-
     fetchOrders();
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
     if (document.visibilityState === 'visible') {
       pollInterval = setInterval(() => {
         console.log('Polling for order updates...');
         fetchOrders();
       }, 30000);
     }
-
     return () => {
       console.log('Clearing polling interval and visibility listener');
       if (pollInterval) clearInterval(pollInterval);
@@ -725,9 +807,9 @@ const ToReview = () => {
       stars.push(
         <StarButton key={i} onClick={() => setRating(i)}>
           {i <= rating ? (
-            <IoStar size={24} color="#FFD700" />
+            <IoStar size={28} color="#FFD700" />
           ) : (
-            <IoStarOutline size={24} color="#FFD700" />
+            <IoStarOutline size={28} color="#FFD700" />
           )}
         </StarButton>
       );
@@ -737,42 +819,36 @@ const ToReview = () => {
 
   const handleSubmitReview = async (item, order) => {
     if (rating === 0) {
-      alert('Please select a rating');
+      alert(t('PleaseSelectRating'));
       return;
     }
     if (!comment.trim()) {
-      alert('Please enter a comment');
+      alert(t('PleaseEnterComment'));
       return;
     }
-
-    const username = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Anonymous';
-
-    let productId;
+    const username = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : t('Anonymous');
+    const productId = item?.id;
+    if (!productId) {
+      alert(t('ProductIdNotFound'));
+      console.error('Item data:', item);
+      return;
+    }
     try {
       const { data: product, error: productError } = await supabase
         .from('products')
         .select('id')
-        .eq('description', item?.description)
+        .eq('id', productId)
         .single();
-
-      if (productError) {
-        console.error('Error fetching product:', productError);
-        alert(`Failed to identify product: ${productError.message}`);
+      if (productError || !product) {
+        console.error('Error verifying product:', productError);
+        alert(t('ProductNotFoundInDatabase'));
         return;
       }
-
-      if (!product) {
-        alert('Product not found');
-        return;
-      }
-
-      productId = product.id;
     } catch (err) {
-      console.error('Unexpected error fetching product:', err);
-      alert('Unexpected error identifying product');
+      console.error('Error verifying product:', err);
+      alert(t('ErrorVerifyingProduct'));
       return;
     }
-
     const reviewData = {
       username,
       rating,
@@ -781,21 +857,18 @@ const ToReview = () => {
       product_id: productId,
       profile_image: profile?.avatar_url || null,
     };
-
     try {
       const { error } = await supabase
         .from('reviews')
         .insert([reviewData]);
-
       if (error) {
         console.error('Error saving review:', error);
-        alert(`Failed to submit review: ${error.message}`);
+        alert(`${t('FailedToSubmitReview')}: ${error.message}`);
         return;
       }
-
       console.log('Submitted Review:', reviewData);
       setSubmittedReviews(prev => new Set([...prev, `${order.id}-${reviewingItemIndex}`]));
-      
+
       setTimeout(() => {
         setReviewingItemIndex(null);
         setRating(0);
@@ -803,22 +876,19 @@ const ToReview = () => {
       }, 2000);
     } catch (err) {
       console.error('Unexpected error:', err);
-      alert('Unexpected error submitting review');
+      alert(t('UnexpectedErrorSubmittingReview'));
     }
   };
 
   const renderOrderItem = (item) => {
     const isDelivered = item.delivery_status === 'delivered';
     const isExpanded = expandedOrderId === item.id;
-
     const images = item.items.slice(0, 4).map(
       product => product.image_url || 'https://via.placeholder.com/50'
     );
     const itemCount = item.items.length;
-
-    let shippingOptionName = 'Unknown';
+    let shippingOptionName = t('Unknown');
     let shippingOption = item.shipping_option;
-
     if (typeof shippingOption === 'string') {
       try {
         shippingOption = JSON.parse(shippingOption);
@@ -831,7 +901,6 @@ const ToReview = () => {
         shippingOption = null;
       }
     }
-
     if (
       shippingOption &&
       typeof shippingOption === 'object' &&
@@ -839,100 +908,102 @@ const ToReview = () => {
     ) {
       shippingOptionName = shippingOption.name;
     }
-
     const formattedDate = (createdAt) => {
-      if (!createdAt) return 'Not Available';
+      if (!createdAt) return t('NotAvailable');
       return new Date(createdAt).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
       }).replace(' ', ', ');
     };
-
     return (
       <OrderItem key={item.id}>
-        <OrderHeader>
+        <OrderHeader
+          onClick={() =>
+            navigate(
+              `/CustomerOrderDetails?order=${encodeURIComponent(JSON.stringify(item))}`
+            )
+          }
+        >
           <ImagesContainer>
             {itemCount === 1 ? (
               <ImageContainer>
-                <SingleImage src={images[0]} alt="Product" />
+                <SingleImage src={images[0]} alt={t('Product')} />
               </ImageContainer>
             ) : itemCount === 2 ? (
               <ImageContainer>
                 <TwoImagesHorizontal>
-                  <HorizontalImage src={images[0]} alt="Product 1" />
-                  <HorizontalImage src={images[1]} alt="Product 2" />
+                  <HorizontalImage src={images[0]} alt={t('Product') + ' 1'} />
+                  <HorizontalImage src={images[1]} alt={t('Product') + ' 2'} />
                 </TwoImagesHorizontal>
               </ImageContainer>
             ) : itemCount === 3 ? (
               <ImageContainer>
                 <ThreeImagesLayout>
                   <TopRow>
-                    <TopImage src={images[0]} alt="Product 1" />
-                    <TopImage src={images[1]} alt="Product 2" />
+                    <TopImage src={images[0]} alt={t('Product') + ' 1'} />
+                    <TopImage src={images[1]} alt={t('Product') + ' 2'} />
                   </TopRow>
-                  <BottomImage src={images[2]} alt="Product 3" />
+                  <BottomImage src={images[2]} alt={t('Product') + ' 3'} />
                 </ThreeImagesLayout>
               </ImageContainer>
             ) : (
               <ImageContainer>
                 <FourImagesGrid>
-                  <GridImage src={images[0]} alt="Product 1" />
-                  <GridImage src={images[1]} alt="Product 2" />
-                  <GridImage src={images[2]} alt="Product 3" />
-                  <GridImage src={images[3]} alt="Product 4" />
+                  <GridImage src={images[0]} alt={t('Product') + ' 1'} />
+                  <GridImage src={images[1]} alt={t('Product') + ' 2'} />
+                  <GridImage src={images[2]} alt={t('Product') + ' 3'} />
+                  <GridImage src={images[3]} alt={t('Product') + ' 4'} />
                 </FourImagesGrid>
               </ImageContainer>
             )}
           </ImagesContainer>
-
           <DetailsContainer>
             <OrderHeaderRow>
-              <OrderId>Order #{item.id}</OrderId>
+              <OrderId>{t('Order')} #{item.id}</OrderId>
               <ItemsCountContainer>
-                <ItemsCount>{item.items.length} items</ItemsCount>
+                <ItemsCount>{item.items.length} {t('items')}</ItemsCount>
               </ItemsCountContainer>
             </OrderHeaderRow>
-
-            <ShippingOption>{shippingOptionName} Delivery</ShippingOption>
-
+            <ShippingOption>{shippingOptionName} {t('Delivery')}</ShippingOption>
             <StatusAndButtonRow>
               <StatusContainer>
                 <StatusText $delivered={isDelivered}>
-                  {item.delivery_status}
+                  {t('Delivered')}
                 </StatusText>
                 {isDelivered && <CheckmarkIcon />}
               </StatusContainer>
-
               {isDelivered && (
                 <ReviewButton onClick={(e) => {
                   e.stopPropagation();
                   handleReviewClick(item.id);
                 }}>
-                  {isExpanded ? 'Close' : 'Review'}
+                  {isExpanded ? t('Close') : t('Review')}
                 </ReviewButton>
               )}
             </StatusAndButtonRow>
           </DetailsContainer>
         </OrderHeader>
-
         {isExpanded && isDelivered && (
           <ReviewSection>
-            <ReviewSectionTitle>Select an item to review</ReviewSectionTitle>
+            <ReviewSectionHeader>
+              <SparkleIcon />
+              <ReviewSectionTitle>{t('SelectItemToReview')}</ReviewSectionTitle>
+            </ReviewSectionHeader>
             <ReviewItemsList>
               {item.items.map((reviewItem, index) => {
                 const reviewKey = `${item.id}-${index}`;
-                const isReviewed = submittedReviews.has(reviewKey);
-                
+                const isReviewed = submittedReviews.has(reviewKey) || reviewItem.has_review;
+
                 return (
                   <div key={index}>
                     <ReviewItemCard onClick={() => !isReviewed && handleReviewItemClick(index)}>
-                      <ReviewItemImage 
-                        src={reviewItem.image_url || 'https://via.placeholder.com/60'} 
+                      <ReviewItemImage
+                        src={reviewItem.image_url || 'https://via.placeholder.com/60'}
                         alt={reviewItem.description}
                       />
                       <ReviewItemDetails>
                         <ReviewItemDescription>
-                          {reviewItem.description || 'Unnamed Item'}
+                          {reviewItem.description || t('UnnamedItem')}
                         </ReviewItemDescription>
                         <ReviewItemDate>
                           {formattedDate(item.created_at)}
@@ -943,18 +1014,23 @@ const ToReview = () => {
                           e.stopPropagation();
                           handleReviewItemClick(index);
                         }}>
-                          Write Review
+                          {t('YourComment')}
                         </SmallReviewButton>
                       )}
                       {isReviewed && (
-                        <SuccessText>✓ Reviewed</SuccessText>
+                        <ReviewedBadge>
+                          <IoCheckmarkCircle size={18} color="#00BC7D" />
+                          <ReviewedText>{t('Reviewed')}</ReviewedText>
+                        </ReviewedBadge>
                       )}
                     </ReviewItemCard>
-
                     {reviewingItemIndex === index && !isReviewed && (
                       <ReviewForm>
                         <ReviewFormHeader>
-                          <ReviewFormTitle>Write Your Review</ReviewFormTitle>
+                          <ReviewFormTitle>
+                            <IoSparkles size={20} />
+                            {t('WriteYourReview')}
+                          </ReviewFormTitle>
                           <CloseButton onClick={handleCloseReviewForm}>
                             <IoClose size={24} />
                           </CloseButton>
@@ -969,30 +1045,30 @@ const ToReview = () => {
                             </ProfileImageWrapper>
                             <ProductInfo>
                               <ProductDescription>
-                                {reviewItem.description || 'Unnamed Item'}
+                                {reviewItem.description || t('UnnamedItem')}
                               </ProductDescription>
                               <OrderNumberText>
-                                Order #{item.order_number || item.id}
+                                {t('Order')} #{item.order_number || item.id}
                               </OrderNumberText>
                             </ProductInfo>
                           </ProfileSection>
                           <RatingContainer>
-                            <RatingLabel>Rating:</RatingLabel>
+                            <RatingLabel>{t('Rating')}:</RatingLabel>
                             {renderStars()}
                           </RatingContainer>
                           <CommentInput
-                            placeholder="Share your experience with this product..."
+                            placeholder={t('ShareYourExperience')}
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                           />
                           <SubmitButton onClick={() => handleSubmitReview(reviewItem, item)}>
-                            Submit Review
+                            {t('SubmitReview')}
                           </SubmitButton>
                         </ReviewFormContent>
                         {submittedReviews.has(reviewKey) && (
                           <SuccessMessage>
-                            <IoCheckmarkCircle size={20} color="#00BC7D" />
-                            <SuccessText>Thank you for your review!</SuccessText>
+                            <IoCheckmarkCircle size={24} color="#00BC7D" />
+                            <SuccessText>{t('ThankYouForReview')}</SuccessText>
                           </SuccessMessage>
                         )}
                       </ReviewForm>
@@ -1009,8 +1085,8 @@ const ToReview = () => {
 
   const headerContent = (
     <HeaderContent>
-      <HeaderText>To Review</HeaderText>
-      <HeaderText2>My Orders</HeaderText2>
+      <HeaderText>{t('ToReview')}</HeaderText>
+      <HeaderText2>{t('MyOrders')}</HeaderText2>
     </HeaderContent>
   );
 
@@ -1028,7 +1104,7 @@ const ToReview = () => {
       <Container>
         <OrdersList>
           {orders.length === 0 ? (
-            <NoItemsText>No orders found</NoItemsText>
+            <NoItemsText>{t('NoOrdersFound')}</NoItemsText>
           ) : (
             orders.map(renderOrderItem)
           )}

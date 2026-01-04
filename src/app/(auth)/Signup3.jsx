@@ -4,7 +4,7 @@ import styled, { createGlobalStyle, css } from 'styled-components';
 import { hp, wp } from '../../helpers/common';
 import { supabase, supabaseAdmin } from '../../lib/supabase';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { s3Client, CONTABO_BUCKET_NAME, CONTABO_ENDPOINT } from '../../lib/constants';
+import { s3Client, CONTABO_BUCKET_NAME, CONTABO_ENDPOINT, CONTABO_TENANT_ID } from '../../lib/constants';
 import Button from '../../components/Button';
 import bubble1 from '../../assets/images/bubble1.png';
 import bubble2 from '../../assets/images/bubble2.png';
@@ -202,61 +202,62 @@ function Signup3() {
     }
   };
 
-  const uploadImage = async () => {
-    if (!selectedFile) {
-      alert('Please select an image first.');
-      return null;
+ const uploadImage = async () => {
+  if (!selectedFile) {
+    alert('Please select an image first.');
+    return null;
+  }
+
+  try {
+    const fileName = `avatar_${Date.now()}_${Math.random().toString(36).substring(7)}.${selectedFile.name.split('.').pop()}`;
+
+    console.log('Uploading to Contabo S3...');
+
+    // Read the file as an ArrayBuffer
+    const arrayBuffer = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(selectedFile);
+    });
+
+    // Prepare the S3 upload command
+    const command = new PutObjectCommand({
+      Bucket: CONTABO_BUCKET_NAME,
+      Key: `public/${fileName}`,
+      Body: arrayBuffer,
+      ContentType: selectedFile.type,
+      ACL: 'public-read',
+    });
+
+    // Upload to Contabo S3
+    await s3Client.send(command);
+
+    console.log('Upload successful:', fileName);
+
+    // Construct the public URL with the correct Contabo format
+    // Format: https://eu2.contabostorage.com/{TENANT_ID}:{BUCKET_NAME}/public/{filename}
+    const publicUrl = `${CONTABO_ENDPOINT}/${CONTABO_TENANT_ID}:${CONTABO_BUCKET_NAME}/public/${fileName}`;
+
+    console.log('Image uploaded successfully, public URL:', publicUrl);
+    return publicUrl;
+  } catch (error) {
+    console.error('Image upload error:', {
+      message: error.message,
+      name: error.name,
+      details: error,
+    });
+
+    if (error.name === 'AccessDenied') {
+      alert('Storage permission error. Please contact support to enable avatar uploads.');
+    } else if (error.name === 'NoSuchBucket') {
+      alert('Storage bucket not configured. Please contact support.');
+    } else {
+      alert('Failed to upload image. Please try again or contact support.');
     }
-
-    try {
-      const fileName = `avatar_${Date.now()}_${Math.random().toString(36).substring(7)}.${selectedFile.name.split('.').pop()}`;
-
-      console.log('Uploading to Contabo S3...');
-
-      // Read the file as an ArrayBuffer
-      const arrayBuffer = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsArrayBuffer(selectedFile);
-      });
-
-      // Prepare the S3 upload command
-      const command = new PutObjectCommand({
-        Bucket: CONTABO_BUCKET_NAME,
-        Key: `public/${fileName}`,
-        Body: arrayBuffer,
-        ContentType: selectedFile.type,
-        ACL: 'public-read',
-      });
-
-      // Upload to Contabo S3
-      await s3Client.send(command);
-
-      console.log('Upload successful:', fileName);
-
-      // Construct the public URL
-      const publicUrl = `${CONTABO_ENDPOINT}/${CONTABO_BUCKET_NAME}/public/${fileName}`;
-
-      console.log('Image uploaded successfully, public URL:', publicUrl);
-      return publicUrl;
-    } catch (error) {
-      console.error('Image upload error:', {
-        message: error.message,
-        name: error.name,
-        details: error,
-      });
-
-      if (error.name === 'AccessDenied') {
-        alert('Storage permission error. Please contact support to enable avatar uploads.');
-      } else if (error.name === 'NoSuchBucket') {
-        alert('Storage bucket not configured. Please contact support.');
-      } else {
-        alert('Failed to upload image. Please try again or contact support.');
-      }
-      return null;
-    }
-  };
+    return null;
+  }
+};
 
   const handleSignUp = async () => {
     console.log('Signup3 state on submit:', {

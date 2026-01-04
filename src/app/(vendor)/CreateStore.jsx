@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
@@ -362,12 +363,14 @@ const ClearSearchButton = styled.button`
 `;
 
 const CountryList = styled.div`
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
 `;
 
 const CountrySection = styled.div`
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   margin-bottom: 8px;
 `;
@@ -379,6 +382,7 @@ const SectionHeader = styled.div`
   padding: 4px 12px;
   margin-bottom: 12px;
   margin-top: 16px;
+  align-self: flex-start;
   
   &:first-child {
     margin-top: 0;
@@ -394,6 +398,7 @@ const SectionTitle = styled.h3`
 `;
 
 const CountryItem = styled.button`
+  width: 100%;
   background: none;
   border: none;
   padding: 12px 0;
@@ -403,6 +408,7 @@ const CountryItem = styled.button`
   color: #000;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: block;
   
   &:hover {
     color: #00BC7D;
@@ -727,7 +733,7 @@ const CreateStore = () => {
               
               <CountryList>
                 {filteredSections.map((section) => (
-                  <div key={section.title}>
+                  <CountrySection key={section.title}>
                     <SectionHeader>
                       <SectionTitle>{section.title}</SectionTitle>
                     </SectionHeader>
@@ -739,7 +745,7 @@ const CreateStore = () => {
                         {country.name}
                       </CountryItem>
                     ))}
-                  </div>
+                  </CountrySection>
                 ))}
               </CountryList>
             </ModalBody>

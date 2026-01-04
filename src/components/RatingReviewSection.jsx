@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { supabase } from '../lib/supabase';
 import { IoStar, IoStarOutline } from 'react-icons/io5';
+import { useTranslation } from 'react-i18next';
 
 const RatingReviewContainer = styled.div`
   background: white;
@@ -285,6 +286,7 @@ const NoReviewsText = styled.p`
 `;
 
 const RatingReviewSection = ({ showAllReviews, onViewAllReviews, productId }) => {
+  const { t } = useTranslation();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [averageRating, setAverageRating] = useState(0);
@@ -352,7 +354,7 @@ const RatingReviewSection = ({ showAllReviews, onViewAllReviews, productId }) =>
   if (loading) {
     return (
       <RatingReviewContainer>
-        <SectionTitle>Rating & Reviews</SectionTitle>
+        <SectionTitle>{t('RatingAndReviews')}</SectionTitle>
         <LoadingSpinner />
       </RatingReviewContainer>
     );
@@ -362,14 +364,14 @@ const RatingReviewSection = ({ showAllReviews, onViewAllReviews, productId }) =>
 
   return (
     <RatingReviewContainer>
-      <SectionTitle>Rating & Reviews</SectionTitle>
+      <SectionTitle>{t('RatingAndReviews')}</SectionTitle>
       {totalReviews > 0 ? (
         <ReviewsGrid>
           <RatingSummary>
             <OverallRating>
               <RatingScore>{averageRating}</RatingScore>
               <RatingStars>{renderStars(Math.round(averageRating))}</RatingStars>
-              <TotalReviews>{totalReviews} reviews</TotalReviews>
+              <TotalReviews>{totalReviews} {t('Reviews')}</TotalReviews>
             </OverallRating>
             <RatingDistribution>
               {Object.entries(ratingCounts)
@@ -384,21 +386,21 @@ const RatingReviewSection = ({ showAllReviews, onViewAllReviews, productId }) =>
                 <ReviewAvatar>{review.user_name?.charAt(0).toUpperCase() || 'A'}</ReviewAvatar>
                 <ReviewContent>
                   <ReviewHeader>
-                    <ReviewerName>{review.user_name || 'Anonymous'}</ReviewerName>
+                    <ReviewerName>{review.user_name || t('Anonymous')}</ReviewerName>
                     <ReviewStars>{renderStars(review.rating)}</ReviewStars>
                   </ReviewHeader>
-                  <ReviewText>{review.comment || 'No comment provided.'}</ReviewText>
+                  <ReviewText>{review.comment || t('NoCommentProvided')}</ReviewText>
                 </ReviewContent>
               </ReviewCard>
             ))}
           </ReviewsList>
         </ReviewsGrid>
       ) : (
-        <NoReviewsText>No reviews yet. Be the first to review this product!</NoReviewsText>
+        <NoReviewsText>{t('NoReviewsYet')}</NoReviewsText>
       )}
       {!showAllReviews && totalReviews > limit && (
         <ViewAllButton onClick={onViewAllReviews}>
-          View All {totalReviews} Reviews
+          {t('ViewAllReviews', { count: totalReviews })}
         </ViewAllButton>
       )}
     </RatingReviewContainer>

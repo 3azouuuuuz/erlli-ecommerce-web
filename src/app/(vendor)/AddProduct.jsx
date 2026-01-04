@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { s3Client, CONTABO_BUCKET_NAME, CONTABO_ENDPOINT } from '../../lib/constants';
+import { s3Client, CONTABO_BUCKET_NAME, CONTABO_ENDPOINT, CONTABO_TENANT_ID } from '../../lib/constants';
 import { 
   IoAddCircleOutline, 
   IoCloseCircle, 
@@ -803,7 +804,7 @@ const SizeInfoText = styled.p`
 const AddProduct = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  
+  const { t } = useTranslation();
   // Prerequisite checks
   const [hasStore, setHasStore] = useState(null);
   const [hasStripeAccount, setHasStripeAccount] = useState(null);
@@ -1173,7 +1174,7 @@ const AddProduct = () => {
 
       await s3Client.send(command);
 
-      const publicUrl = `${CONTABO_ENDPOINT}/${CONTABO_BUCKET_NAME}/public/${fileName}`;
+      const publicUrl = `${CONTABO_ENDPOINT}/${CONTABO_TENANT_ID}:${CONTABO_BUCKET_NAME}/public/${fileName}`;
       return publicUrl;
     } catch (error) {
       console.error('Image upload error:', error);
@@ -1502,470 +1503,470 @@ const AddProduct = () => {
   }
   
   return (
-    <PageContainer>
-      <VendorHeader profile={profile} />
-      <Container>
-        <Header>
-          <HeaderLeft>
-            <PageTitle>Post Your Product</PageTitle>
-            <PageSubtitle>Add at least one listing</PageSubtitle>
-          </HeaderLeft>
-          {!isFreePlan && (
-            <BulkAddButton onClick={() => navigate('/vendor/bulk-add')}>
-              <IoDuplicateOutline />
-              Bulk Add
-            </BulkAddButton>
-          )}
-        </Header>
+  <PageContainer>
+    <VendorHeader profile={profile} />
+    <Container>
+      <Header>
+        <HeaderLeft>
+          <PageTitle>{t('PostYourProduct')}</PageTitle>
+          <PageSubtitle>{t('AddAtLeastOneListing')}</PageSubtitle>
+        </HeaderLeft>
+        {!isFreePlan && (
+          <BulkAddButton onClick={() => navigate('/vendor/bulk-add')}>
+            <IoDuplicateOutline />
+            {t('BulkAdd')}
+          </BulkAddButton>
+        )}
+      </Header>
+
+      {/* Image Upload Section */}
+      <FormSection>
+        <SectionTitle>{t('Photos')}</SectionTitle>
+        <PageSubtitle style={{ marginBottom: '16px' }}>{t('AddPhotosUpTo4')}</PageSubtitle>
         
-        {/* Image Upload Section */}
-        <FormSection>
-          <SectionTitle>Photos</SectionTitle>
-          <PageSubtitle style={{ marginBottom: '16px' }}>Add photos (up to 4)</PageSubtitle>
-          
-          <ImagePickerSection>
-            <ImageGrid>
-              {imageData.map((img, index) => (
-                <ImageBox key={img.id}>
-                  <ImagePreview src={img.uri} alt={`Product ${index + 1}`} />
-                  <RemoveImageButton onClick={() => handleRemoveImage(index)}>
-                    <IoCloseCircle />
-                  </RemoveImageButton>
-                </ImageBox>
-              ))}
-              
-              {imageData.length < 4 && (
-                <AddImageBox onClick={() => fileInputRef.current?.click()}>
-                  <AddImageContent>
-                    <AddImageIcon>
-                      <IoAddCircleOutline />
-                    </AddImageIcon>
-                  </AddImageContent>
-                </AddImageBox>
-              )}
-              
-              {Array.from({ length: Math.max(0, 3 - imageData.length) }).map((_, i) => (
-                <ImageBox key={`placeholder-${i}`} style={{ opacity: 0.3 }} />
-              ))}
-            </ImageGrid>
-          </ImagePickerSection>
-          
-          <HiddenFileInput
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/jpg,image/png"
-            onChange={handleImageSelect}
+        <ImagePickerSection>
+          <ImageGrid>
+            {imageData.map((img, index) => (
+              <ImageBox key={img.id}>
+                <ImagePreview src={img.uri} alt={`Product ${index + 1}`} />
+                <RemoveImageButton onClick={() => handleRemoveImage(index)}>
+                  <IoCloseCircle />
+                </RemoveImageButton>
+              </ImageBox>
+            ))}
+            
+            {imageData.length < 4 && (
+              <AddImageBox onClick={() => fileInputRef.current?.click()}>
+                <AddImageContent>
+                  <AddImageIcon>
+                    <IoAddCircleOutline />
+                  </AddImageIcon>
+                </AddImageContent>
+              </AddImageBox>
+            )}
+            
+            {Array.from({ length: Math.max(0, 3 - imageData.length) }).map((_, i) => (
+              <ImageBox key={`placeholder-${i}`} style={{ opacity: 0.3 }} />
+            ))}
+          </ImageGrid>
+        </ImagePickerSection>
+        
+        <HiddenFileInput
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png"
+          onChange={handleImageSelect}
+        />
+      </FormSection>
+
+      {/* Product Details Section */}
+      <FormSection>
+        <SectionTitle>{t('ProductDetails')}</SectionTitle>
+        
+        <InputGroup>
+          <Label>{t('ProductName')} *</Label>
+          <Input
+            type="text"
+            placeholder={t('EnterProductName')}
+            value={productName}
+            onChange={(e) => setProductName(e.target.value)}
           />
-        </FormSection>
+        </InputGroup>
         
-        {/* Product Details Section */}
-        <FormSection>
-          <SectionTitle>Product Details</SectionTitle>
-          
-          <InputGroup>
-            <Label>Product Name *</Label>
-            <Input
-              type="text"
-              placeholder="Enter product name"
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-            />
-          </InputGroup>
-          
-          <InputGroup>
-            <Label>Discount (Optional)</Label>
-            <ButtonGroup>
-              {['None', '10', '20', '30', '40', '50'].map(opt => (
-                <OptionButton
-                  key={opt}
-                  $selected={discount === opt}
-                  onClick={() => setDiscount(opt)}
-                >
-                  {opt === 'None' ? 'None' : `${opt}%`}
-                </OptionButton>
-              ))}
-            </ButtonGroup>
-          </InputGroup>
-          
-          <InputGroup>
-            <Label>Product Price *</Label>
-            <PriceContainer>
-              <PriceButton onClick={decrementPrice}>
-                <IoRemove />
-              </PriceButton>
-              <PriceInput
-                type="text"
-                value={`${productPrice}`}
-                onChange={handlePriceChange}
-                placeholder="$0"
-              />
-              <PriceButton onClick={incrementPrice}>
-                <IoAdd />
-              </PriceButton>
-            </PriceContainer>
-          </InputGroup>
-          
-          <InputGroup>
-            <Label>Description</Label>
-            <TextArea
-              placeholder="Describe your product..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </InputGroup>
-          
-          <InputGroup>
-            <Label>Product Dimensions *</Label>
-            <DimensionsContainer>
-              <Input
-                type="number"
-                placeholder="Length (cm)"
-                value={length}
-                onChange={(e) => setLength(e.target.value)}
-              />
-              <Input
-                type="number"
-                placeholder="Width (cm)"
-                value={width}
-                onChange={(e) => setWidth(e.target.value)}
-              />
-              <Input
-                type="number"
-                placeholder="Weight (kg)"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-              />
-            </DimensionsContainer>
-          </InputGroup>
-          
-          <InputGroup>
-            <Label>Material</Label>
-            <Input
-              type="text"
-              placeholder="e.g., Cotton, Leather, Polyester"
-              value={material}
-              onChange={(e) => setMaterial(e.target.value)}
-            />
-          </InputGroup>
-          
-          <InputGroup>
-            <Label>Gender</Label>
-            <ButtonGroup>
-              {['Male', 'Female', 'Unisex'].map(opt => (
-                <OptionButton
-                  key={opt}
-                  $selected={gender === opt}
-                  onClick={() => setGender(opt)}
-                >
-                  {opt}
-                </OptionButton>
-              ))}
-            </ButtonGroup>
-          </InputGroup>
-          
-          <InputGroup>
-            <Label>Condition *</Label>
-            <ButtonGroup>
-              {['New', 'AsNew', 'Used', 'Refurbished'].map(opt => (
-                <OptionButton
-                  key={opt}
-                  $selected={condition === opt}
-                  onClick={() => setCondition(opt)}
-                >
-                  {opt === 'AsNew' ? 'As New' : opt}
-                </OptionButton>
-              ))}
-            </ButtonGroup>
-          </InputGroup>
-        </FormSection>
+        <InputGroup>
+          <Label>{t('DiscountOptional')}</Label>
+          <ButtonGroup>
+            {['None', '10', '20', '30', '40', '50'].map(opt => (
+              <OptionButton
+                key={opt}
+                $selected={discount === opt}
+                onClick={() => setDiscount(opt)}
+              >
+                {opt === 'None' ? t('None') : `${opt}%`}
+              </OptionButton>
+            ))}
+          </ButtonGroup>
+        </InputGroup>
         
-        {/* Category Section */}
-        <FormSection>
-          <SectionTitle>Category</SectionTitle>
-          
+        <InputGroup>
+          <Label>{t('ProductPrice')} *</Label>
+          <PriceContainer>
+            <PriceButton onClick={decrementPrice}>
+              <IoRemove />
+            </PriceButton>
+            <PriceInput
+              type="text"
+              value={`${productPrice}`}
+              onChange={handlePriceChange}
+              placeholder={t('PricePlaceholder')}
+            />
+            <PriceButton onClick={incrementPrice}>
+              <IoAdd />
+            </PriceButton>
+          </PriceContainer>
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>{t('Description')}</Label>
+          <TextArea
+            placeholder={t('DescriptionPlaceholder')}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>{t('ProductDimensions')} *</Label>
+          <DimensionsContainer>
+            <Input
+              type="number"
+              placeholder={t('LengthCmPlaceholder')}
+              value={length}
+              onChange={(e) => setLength(e.target.value)}
+            />
+            <Input
+              type="number"
+              placeholder={t('WidthCmPlaceholder')}
+              value={width}
+              onChange={(e) => setWidth(e.target.value)}
+            />
+            <Input
+              type="number"
+              placeholder={t('WeightKgPlaceholder')}
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+            />
+          </DimensionsContainer>
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>{t('Material')}</Label>
+          <Input
+            type="text"
+            placeholder={t('MaterialPlaceholder')}
+            value={material}
+            onChange={(e) => setMaterial(e.target.value)}
+          />
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>{t('Gender')}</Label>
+          <ButtonGroup>
+            {['Male', 'Female', 'Unisex'].map(opt => (
+              <OptionButton
+                key={opt}
+                $selected={gender === opt}
+                onClick={() => setGender(opt)}
+              >
+                {t(opt)}
+              </OptionButton>
+            ))}
+          </ButtonGroup>
+        </InputGroup>
+        
+        <InputGroup>
+          <Label>{t('Condition')} *</Label>
+          <ButtonGroup>
+            {['New', 'AsNew', 'Used', 'Refurbished'].map(opt => (
+              <OptionButton
+                key={opt}
+                $selected={condition === opt}
+                onClick={() => setCondition(opt)}
+              >
+                {t(opt)}
+              </OptionButton>
+            ))}
+          </ButtonGroup>
+        </InputGroup>
+      </FormSection>
+
+      {/* Category Section */}
+      <FormSection>
+        <SectionTitle>{t('Category')}</SectionTitle>
+        
+        <InputGroup>
+          <Label>{t('Category')} *</Label>
+          <Select
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setSubcategory('');
+            }}
+          >
+            <option value="">{t('SelectCategory')}</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </Select>
+        </InputGroup>
+        
+        {category && (
           <InputGroup>
-            <Label>Category *</Label>
+            <Label>{t('Subcategory')} *</Label>
             <Select
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setSubcategory('');
-              }}
+              value={subcategory}
+              onChange={(e) => setSubcategory(e.target.value)}
+              disabled={subcategories.length === 0}
             >
-              <option value="">Select category</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              <option value="">{t('SelectSubcategory')}</option>
+              {subcategories.map(sub => (
+                <option key={sub.id} value={sub.id}>{sub.name}</option>
               ))}
             </Select>
           </InputGroup>
-          
-          {category && (
-            <InputGroup>
-              <Label>Subcategory *</Label>
-              <Select
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
-                disabled={subcategories.length === 0}
-              >
-                <option value="">Select subcategory</option>
-                {subcategories.map(sub => (
-                  <option key={sub.id} value={sub.id}>{sub.name}</option>
-                ))}
-              </Select>
-            </InputGroup>
-          )}
-        </FormSection>
-        
-        {/* Shipping Section */}
-        <FormSection>
-          <SectionTitle>Shipping Details</SectionTitle>
-          {couriers.every(c => !c.name) && couriers.length === 1 && (
-            <PageSubtitle style={{ marginBottom: '16px' }}>
-              Default shipping options will be used
-            </PageSubtitle>
-          )}
-          
-          {couriers.map((courier, index) => (
-            <CourierFormContainer key={courier.id}>
-              {index > 0 && (
-                <RemoveCourierButton onClick={() => handleRemoveCourier(index)}>
-                  <IoTrashOutline />
-                  Remove
-                </RemoveCourierButton>
-              )}
-              
-              <InputGroup>
-                <Label>Courier Name</Label>
-                <Input
-                  type="text"
-                  placeholder="e.g., DHL, FedEx, UPS"
-                  value={courier.name}
-                  onChange={(e) => handleCourierChange(index, 'name', e.target.value)}
-                />
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Estimated Arrival Times</Label>
-                <ArrivalDaysContainer>
-                  <Input
-                    type="number"
-                    placeholder="Min days"
-                    value={courier.minDays}
-                    onChange={(e) => handleCourierChange(index, 'minDays', e.target.value)}
-                  />
-                  <DashText>-</DashText>
-                  <Input
-                    type="number"
-                    placeholder="Max days"
-                    value={courier.maxDays}
-                    onChange={(e) => handleCourierChange(index, 'maxDays', e.target.value)}
-                  />
-                </ArrivalDaysContainer>
-                <HintText>Number of business days for delivery</HintText>
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Estimated Return Times (Optional)</Label>
-                <ArrivalDaysContainer>
-                  <Input
-                    type="number"
-                    placeholder="Min days"
-                    value={courier.returnMinDays}
-                    onChange={(e) => handleCourierChange(index, 'returnMinDays', e.target.value)}
-                  />
-                  <DashText>-</DashText>
-                  <Input
-                    type="number"
-                    placeholder="Max days"
-                    value={courier.returnMaxDays}
-                    onChange={(e) => handleCourierChange(index, 'returnMaxDays', e.target.value)}
-                  />
-                </ArrivalDaysContainer>
-                <HintText>Number of business days for returns</HintText>
-              </InputGroup>
-              
-              <InputGroup>
-                <Label>Shipping Costs</Label>
-                <ShippingCostContainer>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={courier.price}
-                    onChange={(e) => handleCourierChange(index, 'price', e.target.value)}
-                    disabled={courier.isFreeShipping}
-                    style={{ flex: 1 }}
-                  />
-                  <CheckboxContainer>
-                    <CheckboxInput
-                      type="checkbox"
-                      checked={courier.isFreeShipping}
-                      onChange={(e) => handleCourierChange(index, 'isFreeShipping', e.target.checked)}
-                    />
-                    <CheckboxLabel>Free Shipping</CheckboxLabel>
-                  </CheckboxContainer>
-                </ShippingCostContainer>
-              </InputGroup>
-            </CourierFormContainer>
-          ))}
-          
-          <AddCourierButton onClick={handleAddCourier}>
-            <IoAddCircleOutline />
-            <span>Add Custom Shipping Option</span>
-          </AddCourierButton>
-        </FormSection>
-        
-        {/* Color & Size Selection Section */}
-        {imageData.length > 0 && (
-          <FormSection>
-            <SectionTitle>Color & Size Selection</SectionTitle>
-            <PageSubtitle style={{ marginBottom: '16px' }}>
-              Assign colors and sizes to each image (Image {currentImageIndex + 1} of {imageData.length})
-            </PageSubtitle>
-            
-            {/* Image Carousel */}
-            <ImageCarouselSection>
-              <CarouselContainer>
-                {imageData.map((img, index) => (
-                  <CarouselImage
-                    key={img.id}
-                    src={img.uri}
-                    alt={`Product ${index + 1}`}
-                    $active={index === currentImageIndex}
-                  />
-                ))}
-                
-                <CarouselButton
-                  $direction="left"
-                  onClick={goToPreviousImage}
-                  disabled={currentImageIndex === 0}
-                >
-                  <IoChevronBack />
-                </CarouselButton>
-                
-                <CarouselButton
-                  $direction="right"
-                  onClick={goToNextImage}
-                  disabled={currentImageIndex === imageData.length - 1}
-                >
-                  <IoChevronForward />
-                </CarouselButton>
-              </CarouselContainer>
-              
-              <PaginationDots>
-                {imageData.map((_, index) => (
-                  <Dot
-                    key={index}
-                    $active={index === currentImageIndex}
-                    onClick={() => setCurrentImageIndex(index)}
-                  />
-                ))}
-              </PaginationDots>
-            </ImageCarouselSection>
-            
-            {/* Color Selection */}
-            <ColorSelectionContainer>
-              <Label>Colors</Label>
-              <ColorGrid>
-                {colorOptions.map(color => (
-                  <ColorButton
-                    key={color.name}
-                    onClick={() => handleColorSelect(color.name)}
-                  >
-                    <ColorCircle $color={color.hex} />
-                    {currentImage?.color === color.name && <CheckIcon />}
-                  </ColorButton>
-                ))}
-              </ColorGrid>
-            </ColorSelectionContainer>
-            
-            {/* Size Selection */}
-            <SizeSelectionContainer>
-              <Label>Sizes</Label>
-              
-              <SizeTypeButtons>
-                <SizeTypeButton
-                  $selected={currentImage?.sizeType === 'Clothing'}
-                  $bgColor="#D0FAE5"
-                  onClick={() => handleSizeTypeChange('Clothing')}
-                >
-                  Clothing
-                </SizeTypeButton>
-                <SizeTypeButton
-                  $selected={currentImage?.sizeType === 'Shoes'}
-                  $bgColor="#FFD1DC"
-                  onClick={() => handleSizeTypeChange('Shoes')}
-                >
-                  Shoes
-                </SizeTypeButton>
-                <SizeTypeButton
-                  $selected={currentImage?.sizeType === 'None'}
-                  $bgColor="#E0E0E0"
-                  onClick={() => handleSizeTypeChange('None')}
-                >
-                  None
-                </SizeTypeButton>
-              </SizeTypeButtons>
-              
-              {currentImage?.sizeType !== 'None' && currentSizeOptions.length > 0 && (
-                <SizeButtonsContainer>
-                  {currentSizeOptions.map(size => {
-                    const isSelected = currentImage?.sizes?.some(s => s.size === size);
-                    return (
-                      <SizeButton
-                        key={size}
-                        $selected={isSelected}
-                        onClick={() => handleSizeToggle(size)}
-                      >
-                        {size}
-                      </SizeButton>
-                    );
-                  })}
-                </SizeButtonsContainer>
-              )}
-              
-              {currentImage?.sizeType === 'None' && (
-                <SizeInfoText>
-                  Size: Standard (One size fits all)
-                </SizeInfoText>
-              )}
-            </SizeSelectionContainer>
-            
-            {/* Quantity Section */}
-            {currentImage?.sizeType !== 'None' && currentImage?.sizes?.length > 0 && (
-              <QuantitySection>
-                <Label>Quantities</Label>
-                <QuantityList>
-                  {currentImage.sizes.map(sizeItem => (
-                    <QuantityItem key={sizeItem.size}>
-                      <QuantityLabel>{sizeItem.size}</QuantityLabel>
-                      <QuantityInput
-                        type="number"
-                        min="1"
-                        value={sizeItem.quantity}
-                        onChange={(e) => handleQuantityChange(sizeItem.size, e.target.value)}
-                        placeholder="Qty"
-                      />
-                    </QuantityItem>
-                  ))}
-                </QuantityList>
-              </QuantitySection>
-            )}
-          </FormSection>
+        )}
+      </FormSection>
+
+      {/* Shipping Section */}
+      <FormSection>
+        <SectionTitle>{t('ShippingDetails')}</SectionTitle>
+        {couriers.every(c => !c.name) && couriers.length === 1 && (
+          <PageSubtitle style={{ marginBottom: '16px' }}>
+            {t('DefaultShippingOptions')}
+          </PageSubtitle>
         )}
         
-        {/* Submit Button */}
-        <SubmitButton onClick={handleSubmit} disabled={loading}>
-          {loading ? (
-            <>
-              <LoadingSpinner />
-              Uploading...
-            </>
-          ) : (
-            'Submit Product'
+        {couriers.map((courier, index) => (
+          <CourierFormContainer key={courier.id}>
+            {index > 0 && (
+              <RemoveCourierButton onClick={() => handleRemoveCourier(index)}>
+                <IoTrashOutline />
+                {t('Remove')}
+              </RemoveCourierButton>
+            )}
+            
+            <InputGroup>
+              <Label>{t('CourierName')}</Label>
+              <Input
+                type="text"
+                placeholder={t('CourierNamePlaceholder')}
+                value={courier.name}
+                onChange={(e) => handleCourierChange(index, 'name', e.target.value)}
+              />
+            </InputGroup>
+            
+            <InputGroup>
+              <Label>{t('EstimatedArrivalTimes')}</Label>
+              <ArrivalDaysContainer>
+                <Input
+                  type="number"
+                  placeholder={t('MinDaysPlaceholder')}
+                  value={courier.minDays}
+                  onChange={(e) => handleCourierChange(index, 'minDays', e.target.value)}
+                />
+                <DashText>-</DashText>
+                <Input
+                  type="number"
+                  placeholder={t('MaxDaysPlaceholder')}
+                  value={courier.maxDays}
+                  onChange={(e) => handleCourierChange(index, 'maxDays', e.target.value)}
+                />
+              </ArrivalDaysContainer>
+              <HintText>{t('ArrivalDaysHint')}</HintText>
+            </InputGroup>
+            
+            <InputGroup>
+              <Label>{t('EstimatedReturnTimes')} ({t('Optional')})</Label>
+              <ArrivalDaysContainer>
+                <Input
+                  type="number"
+                  placeholder={t('ReturnMinDaysPlaceholder')}
+                  value={courier.returnMinDays}
+                  onChange={(e) => handleCourierChange(index, 'returnMinDays', e.target.value)}
+                />
+                <DashText>-</DashText>
+                <Input
+                  type="number"
+                  placeholder={t('ReturnMaxDaysPlaceholder')}
+                  value={courier.returnMaxDays}
+                  onChange={(e) => handleCourierChange(index, 'returnMaxDays', e.target.value)}
+                />
+              </ArrivalDaysContainer>
+              <HintText>{t('ReturnDaysHint')}</HintText>
+            </InputGroup>
+            
+            <InputGroup>
+              <Label>{t('ShippingCosts')}</Label>
+              <ShippingCostContainer>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={courier.price}
+                  onChange={(e) => handleCourierChange(index, 'price', e.target.value)}
+                  disabled={courier.isFreeShipping}
+                  style={{ flex: 1 }}
+                />
+                <CheckboxContainer>
+                  <CheckboxInput
+                    type="checkbox"
+                    checked={courier.isFreeShipping}
+                    onChange={(e) => handleCourierChange(index, 'isFreeShipping', e.target.checked)}
+                  />
+                  <CheckboxLabel>{t('FreeShipping')}</CheckboxLabel>
+                </CheckboxContainer>
+              </ShippingCostContainer>
+            </InputGroup>
+          </CourierFormContainer>
+        ))}
+        
+        <AddCourierButton onClick={handleAddCourier}>
+          <IoAddCircleOutline />
+          <span>{t('AddCustomShippingOption')}</span>
+        </AddCourierButton>
+      </FormSection>
+
+      {/* Color & Size Selection Section */}
+      {imageData.length > 0 && (
+        <FormSection>
+          <SectionTitle>{t('ColorSizeSelection')}</SectionTitle>
+          <PageSubtitle style={{ marginBottom: '16px' }}>
+            {t('AssignColorsAndSizes', { current: currentImageIndex + 1, total: imageData.length })}
+          </PageSubtitle>
+
+          {/* Image Carousel */}
+          <ImageCarouselSection>
+            <CarouselContainer>
+              {imageData.map((img, index) => (
+                <CarouselImage
+                  key={img.id}
+                  src={img.uri}
+                  alt={`Product ${index + 1}`}
+                  $active={index === currentImageIndex}
+                />
+              ))}
+              
+              <CarouselButton
+                $direction="left"
+                onClick={goToPreviousImage}
+                disabled={currentImageIndex === 0}
+              >
+                <IoChevronBack />
+              </CarouselButton>
+              
+              <CarouselButton
+                $direction="right"
+                onClick={goToNextImage}
+                disabled={currentImageIndex === imageData.length - 1}
+              >
+                <IoChevronForward />
+              </CarouselButton>
+            </CarouselContainer>
+            
+            <PaginationDots>
+              {imageData.map((_, index) => (
+                <Dot
+                  key={index}
+                  $active={index === currentImageIndex}
+                  onClick={() => setCurrentImageIndex(index)}
+                />
+              ))}
+            </PaginationDots>
+          </ImageCarouselSection>
+
+          {/* Color Selection */}
+          <ColorSelectionContainer>
+            <Label>{t('Colors')}</Label>
+            <ColorGrid>
+              {colorOptions.map(color => (
+                <ColorButton
+                  key={color.name}
+                  onClick={() => handleColorSelect(color.name)}
+                >
+                  <ColorCircle $color={color.hex} />
+                  {currentImage?.color === color.name && <CheckIcon />}
+                </ColorButton>
+              ))}
+            </ColorGrid>
+          </ColorSelectionContainer>
+
+          {/* Size Selection */}
+          <SizeSelectionContainer>
+            <Label>{t('Sizes')}</Label>
+            
+            <SizeTypeButtons>
+              <SizeTypeButton
+                $selected={currentImage?.sizeType === 'Clothing'}
+                $bgColor="#D0FAE5"
+                onClick={() => handleSizeTypeChange('Clothing')}
+              >
+                {t('Clothing')}
+              </SizeTypeButton>
+              <SizeTypeButton
+                $selected={currentImage?.sizeType === 'Shoes'}
+                $bgColor="#FFD1DC"
+                onClick={() => handleSizeTypeChange('Shoes')}
+              >
+                {t('Shoes')}
+              </SizeTypeButton>
+              <SizeTypeButton
+                $selected={currentImage?.sizeType === 'None'}
+                $bgColor="#E0E0E0"
+                onClick={() => handleSizeTypeChange('None')}
+              >
+                {t('None')}
+              </SizeTypeButton>
+            </SizeTypeButtons>
+            
+            {currentImage?.sizeType !== 'None' && currentSizeOptions.length > 0 && (
+              <SizeButtonsContainer>
+                {currentSizeOptions.map(size => {
+                  const isSelected = currentImage?.sizes?.some(s => s.size === size);
+                  return (
+                    <SizeButton
+                      key={size}
+                      $selected={isSelected}
+                      onClick={() => handleSizeToggle(size)}
+                    >
+                      {size}
+                    </SizeButton>
+                  );
+                })}
+              </SizeButtonsContainer>
+            )}
+            
+            {currentImage?.sizeType === 'None' && (
+              <SizeInfoText>
+                {t('SizeStandard')}
+              </SizeInfoText>
+            )}
+          </SizeSelectionContainer>
+
+          {/* Quantity Section */}
+          {currentImage?.sizeType !== 'None' && currentImage?.sizes?.length > 0 && (
+            <QuantitySection>
+              <Label>{t('Quantities')}</Label>
+              <QuantityList>
+                {currentImage.sizes.map(sizeItem => (
+                  <QuantityItem key={sizeItem.size}>
+                    <QuantityLabel>{sizeItem.size}</QuantityLabel>
+                    <QuantityInput
+                      type="number"
+                      min="1"
+                      value={sizeItem.quantity}
+                      onChange={(e) => handleQuantityChange(sizeItem.size, e.target.value)}
+                      placeholder={t('QuantityPlaceholder')}
+                    />
+                  </QuantityItem>
+                ))}
+              </QuantityList>
+            </QuantitySection>
           )}
-        </SubmitButton>
-      </Container>
-    </PageContainer>
+        </FormSection>
+      )}
+
+      {/* Submit Button */}
+      <SubmitButton onClick={handleSubmit} disabled={loading}>
+        {loading ? (
+          <>
+            <LoadingSpinner />
+            {t('Uploading')}
+          </>
+        ) : (
+          t('Submit')
+        )}
+      </SubmitButton>
+    </Container>
+  </PageContainer>
   );
 };
 

@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { IoTimeOutline, IoArrowForward } from 'react-icons/io5';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const Container = styled.div`
   display: flex;
@@ -130,6 +131,7 @@ const TitleWithAction = ({
 }) => {
   const themeContext = useTheme();
   const theme = themeContext?.theme || {};
+  const { t } = useTranslation();
   
   // Theme-based colors with fallbacks
   const titleColor = theme?.titleColor || '#202020';
@@ -180,7 +182,7 @@ const TitleWithAction = ({
       ) : (
         <SeeAllButton onClick={onPress}>
           <SeeAllText $seeAllTextColor={seeAllTextColor}>
-            See All
+            {t('seeAll') || 'See All'}
           </SeeAllText>
           <ArrowContainer
             $arrowColor={arrowColor}

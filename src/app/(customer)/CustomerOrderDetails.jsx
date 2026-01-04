@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import ProfileHeader from '../../components/ProfileHeader';
+import { useTranslation } from 'react-i18next';
 import { IoMailOutline, IoCopyOutline, IoCheckmarkCircle } from 'react-icons/io5';
 
 const PageContainer = styled.div`
@@ -14,7 +15,6 @@ const Container = styled.div`
   padding: 80px 16px 20px;
   max-width: 1200px;
   margin: 0 auto;
-
   @media (max-width: 768px) {
     padding-top: 100px;
   }
@@ -49,7 +49,6 @@ const ContactButton = styled.button`
   align-items: center;
   cursor: pointer;
   transition: all 0.2s ease;
-
   &:hover {
     background-color: #D0FAE5;
     transform: scale(1.05);
@@ -70,6 +69,25 @@ const ProgressTrack = styled.div`
   margin-bottom: 20px;
   top:25px;
   position: relative;
+`;
+const ViewTrackingButton = styled.button`
+  background: linear-gradient(135deg, #00BC7D 0%, #10B981 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
+  }
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 const ProgressBackgroundShadow = styled.div`
@@ -170,17 +188,17 @@ const CloudContainer = styled.div`
   align-items: center;
   z-index: 4;
   padding-top:29px;
-  
+
   ${props => props.$position === 'start' && `
     left: -21px;
     transform: translateX(5px);
   `}
-  
+
   ${props => props.$position === 'middle' && `
     left: 51%;
     transform: translateX(-25px);
   `}
-  
+
   ${props => props.$position === 'end' && `
     right: -17px;
     transform: translateX(-5px);
@@ -194,7 +212,6 @@ const CloudBubble = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: relative;
   border: 1px solid #E0E0E0;
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -206,7 +223,6 @@ const CloudText = styled.span`
   font-weight: 600;
   color: #FFFFFF;
   text-align: center;
-  
 `;
 
 const CloudTail = styled.div`
@@ -274,7 +290,6 @@ const TrackingContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 20px 0;
-
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
@@ -321,7 +336,6 @@ const TrackingRight = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-
   @media (max-width: 768px) {
     align-items: flex-start;
   }
@@ -359,7 +373,6 @@ const CopyButton = styled.button`
   display: flex;
   align-items: center;
   transition: transform 0.2s ease;
-
   &:hover {
     transform: scale(1.1);
   }
@@ -371,7 +384,6 @@ const ItemContainer = styled.div`
   margin: 12px 0 24px;
   align-items: center;
   padding: 8px;
-
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
@@ -384,7 +396,6 @@ const ItemImage = styled.img`
   border-radius: 5px;
   object-fit: cover;
   margin-right: 12px;
-
   @media (max-width: 768px) {
     width: 100%;
     height: 150px;
@@ -416,7 +427,6 @@ const ItemSeparator = styled.div`
   height: 1px;
   background-color: #E0E0E0;
   margin: 12px 0 12px 92px;
-
   @media (max-width: 768px) {
     margin-left: 0;
   }
@@ -505,7 +515,6 @@ const ReceiverInfo = styled.div`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
@@ -560,7 +569,6 @@ const Loader = styled.div`
   border-top: 4px solid #00BC7D;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -582,7 +590,6 @@ const ToastMessage = styled.div`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   animation: slideUp 0.3s ease;
-
   @keyframes slideUp {
     from {
       opacity: 0;
@@ -599,6 +606,7 @@ const CustomerOrderDetails = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showToast, setShowToast] = useState(false);
@@ -607,7 +615,7 @@ const CustomerOrderDetails = () => {
     try {
       const params = new URLSearchParams(location.search);
       const orderParam = params.get('order');
-      
+
       if (orderParam) {
         const parsedOrder = JSON.parse(decodeURIComponent(orderParam));
         console.log('Parsed order data:', parsedOrder);
@@ -635,7 +643,7 @@ const CustomerOrderDetails = () => {
         <ProfileHeader profile={profile} />
         <Container>
           <ErrorContainer>
-            <ErrorText>Failed to load order</ErrorText>
+            <ErrorText>{t('FailedToLoadOrder')}</ErrorText>
           </ErrorContainer>
         </Container>
       </PageContainer>
@@ -661,11 +669,13 @@ const CustomerOrderDetails = () => {
     shippingOption = order.shipping_option;
   }
 
-  const courierName = shippingOption?.name || 'Not Available';
+  const courierName = shippingOption?.name || t('NotAvailable');
   const shippingCosts = shippingOption?.price
     ? parseFloat(shippingOption.price.replace('$', '')) || 0
     : 0;
-  const trackingNumber = shippingOption?.tracking_number || order.tracking_number || 'Not Available';
+
+  const trackingNumber = shippingOption?.tracking_number || order.tracking_number || t('NotAvailable');
+
   const total = subtotal + shippingCosts;
 
   const orderSummary = {
@@ -686,21 +696,22 @@ const CustomerOrderDetails = () => {
     userAddress.postal_code || userAddress.zip_code,
     userAddress.country,
   ].filter(part => part);
+
   const formattedAddress = addressParts.length > 0
     ? addressParts.join(', ')
-    : 'No Shipping Address';
+    : t('NoShippingAddressAvailable');
 
-  const receiverName = userAddress.first_name && userAddress.last_name
-    ? `${userAddress.first_name} ${userAddress.last_name}`
-    : 'Not Available';
+  const receiverName = profile?.first_name && profile?.last_name
+    ? `${profile.first_name} ${profile.last_name}`
+    : t('NotAvailable');
 
   const handleCopyTrackingNumber = () => {
-    if (trackingNumber !== 'Not Available') {
+    if (trackingNumber !== t('NotAvailable')) {
       navigator.clipboard.writeText(trackingNumber);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } else {
-      alert('No tracking number available');
+      alert(t('NoTrackingNumberToCopy'));
     }
   };
 
@@ -708,11 +719,19 @@ const CustomerOrderDetails = () => {
     console.log('Attempting to contact vendor, order.vendor_id:', order.vendor_id);
     if (!order.vendor_id) {
       console.error('vendor_id is missing from order data');
-      alert('No vendor ID available');
+      alert(t('NoVendorId'));
       return;
     }
-    navigate(`/CustomerMessages?vendorId=${order.vendor_id}`);
+    navigate(`/customer/CustomerMessages?vendorId=${order.vendor_id}`);
   };
+
+  const handleViewTracking = () => {
+  if (trackingNumber && trackingNumber !== t('NotAvailable')) {
+    navigate(`/tracking-details?trackingNumber=${trackingNumber}&orderId=${order.id}`);
+  } else {
+    alert('No tracking number available');
+  }
+};
 
   const statusToProgress = {
     processing: 25,
@@ -720,7 +739,7 @@ const CustomerOrderDetails = () => {
     delivered: 99,
     failed: 0,
   };
-  
+
   const progress = statusToProgress[order.delivery_status] || 0;
   const isProcessingActive = progress >= 0 && order.delivery_status !== 'failed';
   const isShippedActive = progress >= 33 && order.delivery_status !== 'failed';
@@ -728,8 +747,8 @@ const CustomerOrderDetails = () => {
 
   const headerContent = (
     <Header>
-      <HeaderTitle>Order Details</HeaderTitle>
-      <ContactButton onClick={handleContactVendor} aria-label="Contact Vendor">
+      <HeaderTitle>{t('OrderDetails')}</HeaderTitle>
+      <ContactButton onClick={handleContactVendor} aria-label={t('ContactVendor')}>
         <IoMailOutline size={20} color="#00BC7D" />
       </ContactButton>
     </Header>
@@ -740,63 +759,63 @@ const CustomerOrderDetails = () => {
       <ProfileHeader profile={profile} customContent={headerContent} />
       <Container>
         <ProgressBarContainer>
-  {isProcessingActive && (
-    <CloudContainer $position="start">
-      <CloudBubble>
-        <CloudText>Processing</CloudText>
-      </CloudBubble>
-      <CloudTail />
-    </CloudContainer>
-  )}
-  {isShippedActive && (
-    <CloudContainer $position="middle">
-      <CloudBubble>
-        <CloudText>Shipped</CloudText>
-      </CloudBubble>
-      <CloudTail />
-    </CloudContainer>
-  )}
-  {isDeliveredActive && (
-    <CloudContainer $position="end">
-      <CloudBubble>
-        <CloudText>Delivered</CloudText>
-      </CloudBubble>
-      <CloudTail />
-    </CloudContainer>
-  )}
-  
-  <ProgressBackgroundShadow />
-  
-  <CircleShadow style={{ left: 0, transform: 'translate(9px, -19px)' }} />
-  <CircleShadow style={{ left: '50%', transform: 'translate(-2.5px, -20px)' }} />
-  <CircleShadow style={{ right: 0, transform: 'translate(-9.5px, -19px)' }} />
-  
-  <ProgressTrack>
-    <ProgressBackground />
-    <ProgressFill $progress={progress} />
-    
-    <CircleContainer style={{ left: 0 }} />
-    <CircleContainer style={{ left: '50%', transform: 'translate(-12px, -12px) translateX(17px)' }} />
-    <CircleContainer style={{ right: 0 }} />
-    
-    <CircleWrapper style={{ left: 0 }}>
-      <Circle $active={progress >= 0 && order.delivery_status !== 'failed'} />
-    </CircleWrapper>
-    <CircleWrapper style={{ left: '50%', transform: 'translate(-12px, -12px) translateX(17px)' }}>
-      <Circle $active={progress >= 33 && order.delivery_status !== 'failed'} />
-    </CircleWrapper>
-    <CircleWrapper style={{ right: 0 }}>
-      <Circle $active={progress >= 66 && order.delivery_status !== 'failed'} />
-    </CircleWrapper>
-  </ProgressTrack>
-</ProgressBarContainer>
+          {isProcessingActive && (
+            <CloudContainer $position="start">
+              <CloudBubble>
+                <CloudText>{t('Processing')}</CloudText>
+              </CloudBubble>
+              <CloudTail />
+            </CloudContainer>
+          )}
+          {isShippedActive && (
+            <CloudContainer $position="middle">
+              <CloudBubble>
+                <CloudText>{t('Shipped')}</CloudText>
+              </CloudBubble>
+              <CloudTail />
+            </CloudContainer>
+          )}
+          {isDeliveredActive && (
+            <CloudContainer $position="end">
+              <CloudBubble>
+                <CloudText>{t('Delivered')}</CloudText>
+              </CloudBubble>
+              <CloudTail />
+            </CloudContainer>
+          )}
+
+          <ProgressBackgroundShadow />
+
+          <CircleShadow style={{ left: 0, transform: 'translate(9px, -19px)' }} />
+          <CircleShadow style={{ left: '50%', transform: 'translate(-2.5px, -20px)' }} />
+          <CircleShadow style={{ right: 0, transform: 'translate(-9.5px, -19px)' }} />
+
+          <ProgressTrack>
+            <ProgressBackground />
+            <ProgressFill $progress={progress} />
+
+            <CircleContainer style={{ left: 0 }} />
+            <CircleContainer style={{ left: '50%', transform: 'translate(-12px, -12px) translateX(17px)' }} />
+            <CircleContainer style={{ right: 0 }} />
+
+            <CircleWrapper style={{ left: 0 }}>
+              <Circle $active={progress >= 0 && order.delivery_status !== 'failed'} />
+            </CircleWrapper>
+            <CircleWrapper style={{ left: '50%', transform: 'translate(-12px, -12px) translateX(17px)' }}>
+              <Circle $active={progress >= 33 && order.delivery_status !== 'failed'} />
+            </CircleWrapper>
+            <CircleWrapper style={{ right: 0 }}>
+              <Circle $active={progress >= 66 && order.delivery_status !== 'failed'} />
+            </CircleWrapper>
+          </ProgressTrack>
+        </ProgressBarContainer>
 
         <OrderInfo>
           <ArrivalContainer>
-            <ArrivalLabel>Arrival Time</ArrivalLabel>
+            <ArrivalLabel>{t('ArrivalTime')}</ArrivalLabel>
             <DeliveryDate>{formattedDeliveryDate}</DeliveryDate>
           </ArrivalContainer>
-          <OrderNumber>#ORD{order.id}</OrderNumber>
+          <OrderNumber>{t('OrderPrefix')}{order.id}</OrderNumber>
         </OrderInfo>
 
         <Separator />
@@ -813,14 +832,17 @@ const CustomerOrderDetails = () => {
                 </TrackingDetails>
               </TrackingLeft>
               <TrackingRight>
-                <TrackingLabel>Tracking Number</TrackingLabel>
-                <TrackingNumberWrapper>
-                  <TrackingNumber>{orderSummary.trackingNumber}</TrackingNumber>
-                  <CopyButton onClick={handleCopyTrackingNumber}>
-                    <IoCopyOutline size={16} color="#00BC7D" />
-                  </CopyButton>
-                </TrackingNumberWrapper>
-              </TrackingRight>
+  <TrackingLabel>{t('TrackingNo')}</TrackingLabel>
+  <TrackingNumberWrapper>
+    <TrackingNumber>{orderSummary.trackingNumber}</TrackingNumber>
+    <CopyButton onClick={handleCopyTrackingNumber}>
+      <IoCopyOutline size={16} color="#00BC7D" />
+    </CopyButton>
+  </TrackingNumberWrapper>
+  <ViewTrackingButton onClick={handleViewTracking} style={{ marginTop: '12px' }}>
+    {t('ViewTracking')}
+  </ViewTrackingButton>
+</TrackingRight>
             </TrackingContainer>
             <Separator />
           </>
@@ -831,12 +853,12 @@ const CustomerOrderDetails = () => {
             <ItemContainer>
               <ItemImage
                 src={item.image_url || 'https://via.placeholder.com/80'}
-                alt={item.description || 'Product'}
+                alt={item.description || t('Product')}
               />
               <ItemDetails>
-                <ItemName>{item.description || 'Product Name'}</ItemName>
+                <ItemName>{item.description || t('UnnamedItem')}</ItemName>
                 <ItemPrice>
-                  Price: ${item.price.toFixed(2)} • Qty: {item.quantity}
+                  {t('Price')}: ${item.price.toFixed(2)} • {t('Qty')}: {item.quantity}
                 </ItemPrice>
               </ItemDetails>
             </ItemContainer>
@@ -845,40 +867,40 @@ const CustomerOrderDetails = () => {
         ))}
 
         <SummaryContainer>
-          <SummaryTitle>Order Summary</SummaryTitle>
+          <SummaryTitle>{t('OrderSummary')}</SummaryTitle>
           <SummaryRow>
-            <SummaryLabel>Subtotal:</SummaryLabel>
+            <SummaryLabel>{t('Subtotal')}:</SummaryLabel>
             <SummaryValue>${orderSummary.subtotal.toFixed(2)}</SummaryValue>
           </SummaryRow>
           <SummaryRow>
-            <SummaryLabel>Courier Name:</SummaryLabel>
+            <SummaryLabel>{t('CourierName')}:</SummaryLabel>
             <SummaryValue>{orderSummary.courierName}</SummaryValue>
           </SummaryRow>
           <SummaryRow>
-            <SummaryLabel>Tracking Number:</SummaryLabel>
+            <SummaryLabel>{t('TrackingNumber')}:</SummaryLabel>
             <SummaryValue>{orderSummary.trackingNumber}</SummaryValue>
           </SummaryRow>
           <SummaryRow>
-            <SummaryLabel>Shipping Costs:</SummaryLabel>
+            <SummaryLabel>{t('ShippingCosts')}:</SummaryLabel>
             <SummaryValue>${orderSummary.shippingCosts.toFixed(2)}</SummaryValue>
           </SummaryRow>
           <SummaryRow>
-            <SummaryLabel>Coupon:</SummaryLabel>
+            <SummaryLabel>{t('Coupon')}:</SummaryLabel>
             <SummaryValue>${orderSummary.coupon.toFixed(2)}</SummaryValue>
           </SummaryRow>
           <SummarySeparator />
           <SummaryRow>
-            <SummaryLabelTotal>Total:</SummaryLabelTotal>
+            <SummaryLabelTotal>{t('Total')}:</SummaryLabelTotal>
             <SummaryValueTotal>${orderSummary.total.toFixed(2)}</SummaryValueTotal>
           </SummaryRow>
         </SummaryContainer>
 
         <ShippingContainer>
-          <ShippingTitle>Shipping Address</ShippingTitle>
+          <ShippingTitle>{t('ShippingAddress')}</ShippingTitle>
           <ShippingAddress>{formattedAddress}</ShippingAddress>
           <ReceiverInfo>
             <ArrivalContainer>
-              <ReceiverName>Receiver</ReceiverName>
+              <ReceiverName>{t('Receiver')}</ReceiverName>
               <ReceiverLabel>{receiverName}</ReceiverLabel>
             </ArrivalContainer>
           </ReceiverInfo>
@@ -887,7 +909,7 @@ const CustomerOrderDetails = () => {
         {showToast && (
           <ToastMessage>
             <IoCheckmarkCircle size={20} color="white" />
-            <span>Tracking number copied!</span>
+            <span>{t('TrackingNumberCopied')}</span>
           </ToastMessage>
         )}
       </Container>

@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import ProfileHeader from '../../components/ProfileHeader';
+import { useTranslation } from 'react-i18next';
 import { IoCheckmarkCircle, IoStar, IoStarOutline, IoClose } from 'react-icons/io5';
 import RoundShapeList from '../../components/RoundShapeList';
 
@@ -16,7 +17,6 @@ const Container = styled.div`
   padding: 80px 16px 20px;
   max-width: 1200px;
   margin: 0 auto;
-
   @media (max-width: 768px) {
     padding-top: 100px;
   }
@@ -61,7 +61,7 @@ const OrderItem = styled.div`
   border-radius: 10px;
   border: 1px solid #f0f0f0;
   transition: all 0.2s ease;
-  
+
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     border-color: #00BC7D;
@@ -73,7 +73,6 @@ const OrderHeader = styled.div`
   flex-direction: row;
   align-items: center;
   cursor: pointer;
-
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
@@ -84,7 +83,6 @@ const ImagesContainer = styled.div`
   width: 100px;
   height: 100px;
   margin-right: 12px;
-
   @media (max-width: 768px) {
     width: 100%;
     height: 150px;
@@ -176,7 +174,6 @@ const GridImage = styled.img`
 const DetailsContainer = styled.div`
   flex: 1;
   margin-left: 8px;
-
   @media (max-width: 768px) {
     margin-left: 0;
     width: 100%;
@@ -270,7 +267,6 @@ const ActionButton = styled.button`
   border: none;
   background: #00BC7D;
   color: #FFFFFF;
-
   &:hover {
     opacity: 0.9;
     transform: scale(1.02);
@@ -281,7 +277,6 @@ const ReviewButton = styled(ActionButton)`
   background: white;
   border: 2px solid #00BC7D;
   color: #00BC7D;
-
   &:hover {
     background: #f0fdf8;
   }
@@ -310,298 +305,24 @@ const Loader = styled.div`
   border-top: 4px solid #00BC7D;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
 `;
 
-// Review Section Styles
-const ReviewSection = styled.div`
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
-  animation: slideDown 0.3s ease;
-
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-`;
-
-const ReviewSectionTitle = styled.h3`
-  font-size: 16px;
-  font-weight: 700;
-  font-family: 'Raleway', sans-serif;
-  color: #202020;
-  margin: 0 0 12px 0;
-`;
-
-const ReviewItemsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const ReviewItemCard = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 12px;
-  background: #f9f9f9;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f0f0f0;
-  }
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-`;
-
-const ReviewItemImage = styled.img`
-  width: 60px;
-  height: 60px;
-  border-radius: 5px;
-  object-fit: cover;
-  margin-right: 12px;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    height: 120px;
-    margin-right: 0;
-    margin-bottom: 8px;
-  }
-`;
-
-const ReviewItemDetails = styled.div`
-  flex: 1;
-`;
-
-const ReviewItemDescription = styled.p`
-  font-size: 14px;
-  font-weight: 500;
-  font-family: 'Raleway', sans-serif;
-  color: #202020;
-  margin: 0 0 4px 0;
-`;
-
-const ReviewItemDate = styled.span`
-  font-size: 12px;
-  font-family: 'Raleway', sans-serif;
-  color: #666;
-`;
-
-const SmallReviewButton = styled.button`
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: white;
-  border: 2px solid #00BC7D;
-  color: #00BC7D;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: 'Raleway', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-left: 8px;
-
-  &:hover {
-    background: #f0fdf8;
-  }
-
-  @media (max-width: 768px) {
-    margin-left: 0;
-    margin-top: 8px;
-    width: 100%;
-  }
-`;
-
-// Review Form Styles
-const ReviewForm = styled.div`
-  margin-top: 12px;
-  padding: 16px;
-  background: #f8faff;
-  border-radius: 8px;
-  animation: slideDown 0.3s ease;
-`;
-
-const ReviewFormHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-`;
-
-const ReviewFormTitle = styled.h4`
-  font-size: 16px;
-  font-weight: 700;
-  font-family: 'Raleway', sans-serif;
-  color: #202020;
-  margin: 0;
-`;
-
-const CloseButton = styled.button`
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  color: #666;
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: #202020;
-  }
-`;
-
-const ReviewFormContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const ProfileSection = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 12px;
-`;
-
-const ProfileImageWrapper = styled.div`
-  width: 50px;
-  height: 50px;
-`;
-
-const ProductInfo = styled.div`
-  flex: 1;
-`;
-
-const ProductDescription = styled.p`
-  font-size: 14px;
-  font-family: 'Raleway', sans-serif;
-  color: #202020;
-  margin: 0 0 4px 0;
-`;
-
-const OrderNumberText = styled.p`
-  font-size: 12px;
-  font-family: 'Raleway', sans-serif;
-  color: #666;
-  margin: 0;
-`;
-
-const RatingContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  align-items: center;
-`;
-
-const RatingLabel = styled.span`
-  font-size: 14px;
-  font-family: 'Raleway', sans-serif;
-  color: #666;
-  margin-right: 8px;
-`;
-
-const StarButton = styled.button`
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    transform: scale(1.1);
-  }
-`;
-
-const CommentInput = styled.textarea`
-  background: white;
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 14px;
-  font-family: 'Raleway', sans-serif;
-  color: #333;
-  height: 100px;
-  width: 100%;
-  border: 1px solid #e0e0e0;
-  resize: none;
-  outline: none;
-
-  &::placeholder {
-    color: #999;
-  }
-
-  &:focus {
-    border-color: #00BC7D;
-  }
-`;
-
-const SubmitButton = styled.button`
-  background: #00BC7D;
-  border-radius: 8px;
-  padding: 12px 24px;
-  border: none;
-  font-size: 16px;
-  font-weight: 600;
-  color: #FFFFFF;
-  font-family: 'Raleway', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    opacity: 0.9;
-    transform: scale(1.02);
-  }
-`;
-
-const SuccessMessage = styled.div`
-  padding: 12px;
-  background: #d0fae5;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  animation: slideDown 0.3s ease;
-`;
-
-const SuccessText = styled.p`
-  font-size: 14px;
-  font-family: 'Raleway', sans-serif;
-  color: #00BC7D;
-  margin: 0;
-  font-weight: 600;
-`;
-
 const Orders = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedOrderId, setExpandedOrderId] = useState(null);
-  const [reviewingItemIndex, setReviewingItemIndex] = useState(null);
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [submittedReviews, setSubmittedReviews] = useState(new Set());
 
   const fetchOrders = async () => {
     if (!profile?.id) {
       setLoading(false);
       return;
     }
-
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -612,12 +333,11 @@ const Orders = () => {
 
       if (error) throw error;
 
-      const filteredOrders = data.filter(order => 
+      const filteredOrders = data.filter(order =>
         ['processing', 'shipped', 'delivered'].includes(order.delivery_status)
       );
-      
+     
       setOrders(filteredOrders);
-      console.log('Orders fetched:', filteredOrders);
     } catch (error) {
       console.error('Error fetching orders:', error.message);
       setOrders([]);
@@ -633,14 +353,11 @@ const Orders = () => {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && profile?.id) {
-        console.log('Page is visible, starting polling...');
         fetchOrders();
         pollInterval = setInterval(() => {
-          console.log('Polling for order updates...');
           fetchOrders();
         }, 30000);
       } else {
-        console.log('Page is hidden, stopping polling...');
         if (pollInterval) clearInterval(pollInterval);
       }
     };
@@ -650,170 +367,40 @@ const Orders = () => {
 
     if (document.visibilityState === 'visible') {
       pollInterval = setInterval(() => {
-        console.log('Polling for order updates...');
         fetchOrders();
       }, 30000);
     }
 
     return () => {
-      console.log('Clearing polling interval and visibility listener');
       if (pollInterval) clearInterval(pollInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [profile?.id]);
 
-  const handleReviewClick = (orderId) => {
-    if (expandedOrderId === orderId) {
-      setExpandedOrderId(null);
-      setReviewingItemIndex(null);
-      setRating(0);
-      setComment('');
-    } else {
-      setExpandedOrderId(orderId);
-      setReviewingItemIndex(null);
-    }
-  };
-
-  const handleReviewItemClick = (index) => {
-    setReviewingItemIndex(index);
-    setRating(0);
-    setComment('');
-  };
-
-  const handleCloseReviewForm = () => {
-    setReviewingItemIndex(null);
-    setRating(0);
-    setComment('');
-  };
-
-  const renderStars = () => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <StarButton key={i} onClick={() => setRating(i)}>
-          {i <= rating ? (
-            <IoStar size={24} color="#FFD700" />
-          ) : (
-            <IoStarOutline size={24} color="#FFD700" />
-          )}
-        </StarButton>
-      );
-    }
-    return stars;
-  };
-
-  const handleSubmitReview = async (item, order) => {
-    if (rating === 0) {
-      alert('Please select a rating');
-      return;
-    }
-    if (!comment.trim()) {
-      alert('Please enter a comment');
-      return;
-    }
-
-    const username = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Anonymous';
-
-    let productId;
-    try {
-      const { data: product, error: productError } = await supabase
-        .from('products')
-        .select('id')
-        .eq('description', item?.description)
-        .single();
-
-      if (productError) {
-        console.error('Error fetching product:', productError);
-        alert(`Failed to identify product: ${productError.message}`);
-        return;
-      }
-
-      if (!product) {
-        alert('Product not found');
-        return;
-      }
-
-      productId = product.id;
-    } catch (err) {
-      console.error('Unexpected error fetching product:', err);
-      alert('Unexpected error identifying product');
-      return;
-    }
-
-    const reviewData = {
-      username,
-      rating,
-      comment,
-      order_id: order?.id,
-      product_id: productId,
-      profile_image: profile?.avatar_url || null,
-    };
-
-    try {
-      const { error } = await supabase
-        .from('reviews')
-        .insert([reviewData]);
-
-      if (error) {
-        console.error('Error saving review:', error);
-        alert(`Failed to submit review: ${error.message}`);
-        return;
-      }
-
-      console.log('Submitted Review:', reviewData);
-      setSubmittedReviews(prev => new Set([...prev, `${order.id}-${reviewingItemIndex}`]));
-      
-      setTimeout(() => {
-        setReviewingItemIndex(null);
-        setRating(0);
-        setComment('');
-      }, 2000);
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      alert('Unexpected error submitting review');
-    }
-  };
-
   const renderOrderItem = (item) => {
     const isDelivered = item.delivery_status === 'delivered';
-    const isExpanded = expandedOrderId === item.id;
 
     const images = item.items.slice(0, 4).map(
       product => product.image_url || 'https://via.placeholder.com/50'
     );
+
     const itemCount = item.items.length;
 
-    let shippingOptionName = 'Unknown';
+    let shippingOptionName = t('Unknown');
     let shippingOption = item.shipping_option;
 
     if (typeof shippingOption === 'string') {
       try {
         shippingOption = JSON.parse(shippingOption);
       } catch (error) {
-        console.warn(
-          `Failed to parse shipping_option for order ${item.id}:`,
-          shippingOption,
-          error
-        );
+        console.warn(`Failed to parse shipping_option for order ${item.id}:`, shippingOption, error);
         shippingOption = null;
       }
     }
 
-    if (
-      shippingOption &&
-      typeof shippingOption === 'object' &&
-      shippingOption.name
-    ) {
+    if (shippingOption && typeof shippingOption === 'object' && shippingOption.name) {
       shippingOptionName = shippingOption.name;
     }
-
-    const formattedDate = (createdAt) => {
-      if (!createdAt) return 'Not Available';
-      return new Date(createdAt).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      }).replace(' ', ', ');
-    };
 
     return (
       <OrderItem key={item.id}>
@@ -827,32 +414,32 @@ const Orders = () => {
           <ImagesContainer>
             {itemCount === 1 ? (
               <ImageContainer>
-                <SingleImage src={images[0]} alt="Product" />
+                <SingleImage src={images[0]} alt={t('Product')} />
               </ImageContainer>
             ) : itemCount === 2 ? (
               <ImageContainer>
                 <TwoImagesHorizontal>
-                  <HorizontalImage src={images[0]} alt="Product 1" />
-                  <HorizontalImage src={images[1]} alt="Product 2" />
+                  <HorizontalImage src={images[0]} alt={t('Product') + ' 1'} />
+                  <HorizontalImage src={images[1]} alt={t('Product') + ' 2'} />
                 </TwoImagesHorizontal>
               </ImageContainer>
             ) : itemCount === 3 ? (
               <ImageContainer>
                 <ThreeImagesLayout>
                   <TopRow>
-                    <TopImage src={images[0]} alt="Product 1" />
-                    <TopImage src={images[1]} alt="Product 2" />
+                    <TopImage src={images[0]} alt={t('Product') + ' 1'} />
+                    <TopImage src={images[1]} alt={t('Product') + ' 2'} />
                   </TopRow>
-                  <BottomImage src={images[2]} alt="Product 3" />
+                  <BottomImage src={images[2]} alt={t('Product') + ' 3'} />
                 </ThreeImagesLayout>
               </ImageContainer>
             ) : (
               <ImageContainer>
                 <FourImagesGrid>
-                  <GridImage src={images[0]} alt="Product 1" />
-                  <GridImage src={images[1]} alt="Product 2" />
-                  <GridImage src={images[2]} alt="Product 3" />
-                  <GridImage src={images[3]} alt="Product 4" />
+                  <GridImage src={images[0]} alt={t('Product') + ' 1'} />
+                  <GridImage src={images[1]} alt={t('Product') + ' 2'} />
+                  <GridImage src={images[2]} alt={t('Product') + ' 3'} />
+                  <GridImage src={images[3]} alt={t('Product') + ' 4'} />
                 </FourImagesGrid>
               </ImageContainer>
             )}
@@ -860,130 +447,32 @@ const Orders = () => {
 
           <DetailsContainer>
             <OrderHeaderRow>
-              <OrderId>Order #{item.id}</OrderId>
+              <OrderId>{t('Order')} #{item.id}</OrderId>
               <ItemsCountContainer>
-                <ItemsCount>{item.items.length} items</ItemsCount>
+                <ItemsCount>{item.items.length} {t('items')}</ItemsCount>
               </ItemsCountContainer>
             </OrderHeaderRow>
 
-            <ShippingOption>{shippingOptionName} Delivery</ShippingOption>
+            <ShippingOption>{shippingOptionName} {t('Delivery')}</ShippingOption>
 
             <StatusAndButtonRow>
               <StatusContainer>
                 <StatusText $delivered={isDelivered}>
-                  {item.delivery_status}
+                  {t(item.delivery_status.charAt(0).toUpperCase() + item.delivery_status.slice(1))}
                 </StatusText>
                 {isDelivered && <CheckmarkIcon />}
               </StatusContainer>
-
-              {isDelivered && (
-                <ReviewButton onClick={(e) => {
-                  e.stopPropagation();
-                  handleReviewClick(item.id);
-                }}>
-                  {isExpanded ? 'Close' : 'Review'}
-                </ReviewButton>
-              )}
             </StatusAndButtonRow>
           </DetailsContainer>
         </OrderHeader>
-
-        {isExpanded && isDelivered && (
-          <ReviewSection>
-            <ReviewSectionTitle>Select an item to review</ReviewSectionTitle>
-            <ReviewItemsList>
-              {item.items.map((reviewItem, index) => {
-                const reviewKey = `${item.id}-${index}`;
-                const isReviewed = submittedReviews.has(reviewKey);
-                
-                return (
-                  <div key={index}>
-                    <ReviewItemCard onClick={() => !isReviewed && handleReviewItemClick(index)}>
-                      <ReviewItemImage 
-                        src={reviewItem.image_url || 'https://via.placeholder.com/60'} 
-                        alt={reviewItem.description}
-                      />
-                      <ReviewItemDetails>
-                        <ReviewItemDescription>
-                          {reviewItem.description || 'Unnamed Item'}
-                        </ReviewItemDescription>
-                        <ReviewItemDate>
-                          {formattedDate(item.created_at)}
-                        </ReviewItemDate>
-                      </ReviewItemDetails>
-                      {!isReviewed && (
-                        <SmallReviewButton onClick={(e) => {
-                          e.stopPropagation();
-                          handleReviewItemClick(index);
-                        }}>
-                          Write Review
-                        </SmallReviewButton>
-                      )}
-                      {isReviewed && (
-                        <SuccessText>✓ Reviewed</SuccessText>
-                      )}
-                    </ReviewItemCard>
-
-                    {reviewingItemIndex === index && !isReviewed && (
-                      <ReviewForm>
-                        <ReviewFormHeader>
-                          <ReviewFormTitle>Write Your Review</ReviewFormTitle>
-                          <CloseButton onClick={handleCloseReviewForm}>
-                            <IoClose size={24} />
-                          </CloseButton>
-                        </ReviewFormHeader>
-                        <ReviewFormContent>
-                          <ProfileSection>
-                            <ProfileImageWrapper>
-                              <RoundShapeList
-                                imageSource={profile?.avatar_url || 'https://via.placeholder.com/50'}
-                                selectable={false}
-                              />
-                            </ProfileImageWrapper>
-                            <ProductInfo>
-                              <ProductDescription>
-                                {reviewItem.description || 'Unnamed Item'}
-                              </ProductDescription>
-                              <OrderNumberText>
-                                Order #{item.order_number || item.id}
-                              </OrderNumberText>
-                            </ProductInfo>
-                          </ProfileSection>
-                          <RatingContainer>
-                            <RatingLabel>Rating:</RatingLabel>
-                            {renderStars()}
-                          </RatingContainer>
-                          <CommentInput
-                            placeholder="Share your experience with this product..."
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                          />
-                          <SubmitButton onClick={() => handleSubmitReview(reviewItem, item)}>
-                            Submit Review
-                          </SubmitButton>
-                        </ReviewFormContent>
-                        {submittedReviews.has(reviewKey) && (
-                          <SuccessMessage>
-                            <IoCheckmarkCircle size={20} color="#00BC7D" />
-                            <SuccessText>Thank you for your review!</SuccessText>
-                          </SuccessMessage>
-                        )}
-                      </ReviewForm>
-                    )}
-                  </div>
-                );
-              })}
-            </ReviewItemsList>
-          </ReviewSection>
-        )}
       </OrderItem>
     );
   };
 
   const headerContent = (
     <HeaderContent>
-      <HeaderText>To Receive</HeaderText>
-      <HeaderText2>My Orders</HeaderText2>
+      <HeaderText>{t('ToReceive')}</HeaderText>
+      <HeaderText2>{t('MyOrders')}</HeaderText2>
     </HeaderContent>
   );
 
@@ -1001,7 +490,7 @@ const Orders = () => {
       <Container>
         <OrdersList>
           {orders.length === 0 ? (
-            <NoItemsText>No pending orders found</NoItemsText>
+            <NoItemsText>{t('NoPendingOrdersFound')}</NoItemsText>
           ) : (
             orders.map(renderOrderItem)
           )}

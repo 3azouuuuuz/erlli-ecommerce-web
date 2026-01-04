@@ -7,18 +7,17 @@ import ItemsList from '../../components/Items';
 import FilterIcon from '../../assets/images/Filter.png';
 import { supabase } from '../../lib/supabase';
 import { IoChevronDown, IoChevronUp } from 'react-icons/io5';
+import { useTranslation } from 'react-i18next';
 
 const PageContainer = styled.div`
   min-height: 100vh;
   background: white;
 `;
-
 const Container = styled.div`
   padding: 80px 12px 20px;
   max-width: 1200px;
   margin: 0 auto;
 `;
-
 const HeaderSection = styled.div`
   display: flex;
   justify-content: space-between;
@@ -26,7 +25,6 @@ const HeaderSection = styled.div`
   margin-bottom: 20px;
   position: relative;
 `;
-
 const PageTitle = styled.h1`
   font-size: 28px;
   font-weight: 700;
@@ -34,11 +32,9 @@ const PageTitle = styled.h1`
   margin: 0;
   color: #202020;
 `;
-
 const FilterButtonContainer = styled.div`
   position: relative;
 `;
-
 const FilterButton = styled.button`
   display: flex;
   align-items: center;
@@ -54,29 +50,24 @@ const FilterButton = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 188, 125, 0.3);
-
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 188, 125, 0.4);
   }
-
   &:active {
     transform: translateY(0);
   }
 `;
-
 const FilterIconImg = styled.img`
   width: 20px;
   height: 20px;
   filter: brightness(0) invert(1);
 `;
-
 const ChevronIcon = styled(IoChevronDown)`
   font-size: 20px;
   transition: transform 0.3s ease;
   transform: rotate(${props => props.$isOpen ? '180deg' : '0deg'});
 `;
-
 const FiltersDropdown = styled.div`
   position: absolute;
   top: calc(100% + 10px);
@@ -91,18 +82,10 @@ const FiltersDropdown = styled.div`
   overflow-y: auto;
   display: ${props => props.$show ? 'block' : 'none'};
   animation: slideDown 0.3s ease;
-
   @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
-
   &::before {
     content: '';
     position: absolute;
@@ -114,13 +97,11 @@ const FiltersDropdown = styled.div`
     transform: rotate(45deg);
     box-shadow: -2px -2px 4px rgba(0, 0, 0, 0.05);
   }
-
   @media (max-width: 480px) {
     width: calc(100vw - 24px);
     right: -12px;
   }
 `;
-
 const FilterHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -129,7 +110,6 @@ const FilterHeader = styled.div`
   border-bottom: 1px solid #f0f0f0;
   margin-bottom: 15px;
 `;
-
 const FilterHeaderText = styled.h2`
   font-size: 20px;
   font-weight: 700;
@@ -137,7 +117,6 @@ const FilterHeaderText = styled.h2`
   color: #202020;
   margin: 0;
 `;
-
 const OkButton = styled.button`
   background: linear-gradient(135deg, #00BC7D 0%, #00E89D 100%);
   color: white;
@@ -149,17 +128,14 @@ const OkButton = styled.button`
   font-family: 'Raleway', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
-
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
   }
-
   &:active {
     transform: translateY(0);
   }
 `;
-
 const CategoryItem = styled.div`
   background: white;
   border-radius: 7px;
@@ -167,39 +143,33 @@ const CategoryItem = styled.div`
   margin-bottom: 10px;
   padding: 10px;
 `;
-
 const CategoryHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
 `;
-
 const ImageTextContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
 `;
-
 const CategoryImage = styled.img`
   width: 44px;
   height: 44px;
   border-radius: 4px;
   object-fit: cover;
 `;
-
 const CategoryText = styled.span`
   font-size: 17px;
   font-family: 'Raleway', sans-serif;
   font-weight: 500;
   color: #000000;
 `;
-
 const ArrowIcon = styled.div`
   font-size: 20px;
   color: ${props => props.$isExpanded ? '#00BC7D' : '#000000'};
 `;
-
 const SubcategoryGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -209,7 +179,6 @@ const SubcategoryGrid = styled.div`
   border-radius: 7px;
   margin-top: 10px;
 `;
-
 const SubcategoryButton = styled.button`
   background: ${props => props.$selected ? '#D0FAE5' : '#FFFFFF'};
   border: 2px solid ${props => props.$selected ? '#00BC7D' : '#FFEBEB'};
@@ -222,14 +191,12 @@ const SubcategoryButton = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
-
   &:hover {
     background: #D0FAE5;
     border-color: #00BC7D;
     color: #00BC7D;
   }
 `;
-
 const NoCategoriesText = styled.p`
   font-size: 16px;
   color: #666;
@@ -237,20 +204,17 @@ const NoCategoriesText = styled.p`
   text-align: center;
   padding: 20px;
 `;
-
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 100px 20px;
 `;
-
 const LoadingText = styled.p`
   font-size: 18px;
   color: #666;
   font-family: 'Raleway', sans-serif;
 `;
-
 const NoProductsText = styled.p`
   font-size: 18px;
   color: #666;
@@ -258,7 +222,6 @@ const NoProductsText = styled.p`
   text-align: center;
   padding: 60px 20px;
 `;
-
 const LoadMoreButton = styled.button`
   display: block;
   margin: 20px auto;
@@ -273,16 +236,13 @@ const LoadMoreButton = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 188, 125, 0.3);
-
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 188, 125, 0.4);
   }
-
   &:active {
     transform: translateY(0);
   }
-
   &:disabled {
     background: #ccc;
     cursor: not-allowed;
@@ -291,6 +251,7 @@ const LoadMoreButton = styled.button`
 `;
 
 const ProductList = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
@@ -312,14 +273,12 @@ const ProductList = () => {
   const ITEMS_PER_PAGE = 6;
   const LOAD_MORE_ITEMS = 4;
 
-  // Initialize activeSubcategories from navigation params
   useEffect(() => {
     if (subcategoryId) {
       setActiveSubcategories([parseInt(subcategoryId)]);
     }
   }, [subcategoryId]);
 
-  // Fetch categories and subcategories for filter dropdown
   useEffect(() => {
     const fetchClothingCategories = async () => {
       if (!showFilters) return;
@@ -347,14 +306,11 @@ const ProductList = () => {
     fetchClothingCategories();
   }, [showFilters]);
 
-  // Handle click outside to close filter dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target)
+        dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+        buttonRef.current && !buttonRef.current.contains(event.target)
       ) {
         setShowFilters(false);
       }
@@ -362,19 +318,13 @@ const ProductList = () => {
     if (showFilters) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilters]);
 
-  // Fetch products
   const fetchProducts = useCallback(async (pageNum, reset = false) => {
     if (!hasMore && !reset) return;
-    if (reset) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
+    if (reset) setLoading(true);
+    else setLoadingMore(true);
     try {
       let query;
       if (section === 'flash-sale') {
@@ -386,9 +336,7 @@ const ProductList = () => {
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
-        if (flashSaleError || !flashSaleData) {
-          throw new Error('No active flash sale event found');
-        }
+        if (flashSaleError || !flashSaleData) throw new Error('No active flash sale');
         query = supabase
           .from('flash_sale_products')
           .select(`
@@ -411,45 +359,31 @@ const ProductList = () => {
             id, name, description, price, image_url, category_id, subcategory_id, gender,
             material, stock_quantity, created_at, updated_at, likes_count, size, color
           `);
-        if (section === 'most-popular') {
-          query = query.order('likes_count', { ascending: false });
-        } else if (section === 'new-items') {
-          query = query.order('created_at', { ascending: false });
-        }
-        if (activeSubcategories.length > 0) {
-          query = query.in('subcategory_id', activeSubcategories);
-        }
+        if (section === 'most-popular') query = query.order('likes_count', { ascending: false });
+        else if (section === 'new-items') query = query.order('created_at', { ascending: false });
+        if (activeSubcategories.length > 0) query = query.in('subcategory_id', activeSubcategories);
       }
       const start = (pageNum - 1) * (reset ? ITEMS_PER_PAGE : LOAD_MORE_ITEMS);
       const end = start + (reset ? ITEMS_PER_PAGE - 1 : LOAD_MORE_ITEMS - 1);
       query = query.range(start, end);
       const { data, error } = await query;
       if (error) {
-        console.error('Error fetching products:', error);
+        console.error(error);
         setProducts([]);
       } else {
         const formattedData = section === 'flash-sale'
-          ? data.map(item => ({
-              ...item.products,
-              sale_percentage: item.discount_percentage,
-            }))
+          ? data.map(item => ({ ...item.products, sale_percentage: item.discount_percentage }))
           : data;
-        if (reset) {
-          setProducts(formattedData);
-        } else {
-          setProducts((prev) => [...prev, ...formattedData]);
-        }
+        if (reset) setProducts(formattedData);
+        else setProducts(prev => [...prev, ...formattedData]);
         setHasMore(data.length === (reset ? ITEMS_PER_PAGE : LOAD_MORE_ITEMS));
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error(error);
       setProducts([]);
     } finally {
-      if (reset) {
-        setLoading(false);
-      } else {
-        setLoadingMore(false);
-      }
+      if (reset) setLoading(false);
+      else setLoadingMore(false);
     }
   }, [section, discount, activeSubcategories, hasMore]);
 
@@ -483,13 +417,10 @@ const ProductList = () => {
   };
 
   const handleSubcategoryToggle = (subcategoryId) => {
-    setActiveSubcategories((prev) => {
-      if (prev.includes(subcategoryId)) {
-        return prev.filter((id) => id !== subcategoryId);
-      } else {
-        return [...prev, subcategoryId];
-      }
-    });
+    setActiveSubcategories(prev => prev.includes(subcategoryId)
+      ? prev.filter(id => id !== subcategoryId)
+      : [...prev, subcategoryId]
+    );
   };
 
   const handleCategoryToggle = (categoryId) => {
@@ -497,14 +428,10 @@ const ProductList = () => {
   };
 
   const getTitle = () => {
-    if (section === 'most-popular') {
-      return 'Most Popular';
-    } else if (section === 'new-items') {
-      return 'New Items';
-    } else if (section === 'flash-sale') {
-      return `Flash Sale - ${discount || 'All'} Discount`;
-    }
-    return 'Products';
+    if (section === 'most-popular') return t('MostPopular');
+    if (section === 'new-items') return t('NewItems');
+    if (section === 'flash-sale') return `${t('FlashSale')} - ${discount || t('All')} ${t('Discount')}`;
+    return t('Products');
   };
 
   if (loading) {
@@ -521,7 +448,7 @@ const ProductList = () => {
           onLogout={logout}
         />
         <LoadingContainer>
-          <LoadingText>Loading...</LoadingText>
+          <LoadingText>{t('Loading')}</LoadingText>
         </LoadingContainer>
       </PageContainer>
     );
@@ -545,29 +472,27 @@ const ProductList = () => {
           <FilterButtonContainer>
             <FilterButton ref={buttonRef} onClick={() => setShowFilters(!showFilters)}>
               <FilterIconImg src={FilterIcon} alt="Filter" />
-              Filters
+              {t('Filters')}
               <ChevronIcon $isOpen={showFilters} />
             </FilterButton>
             <FiltersDropdown ref={dropdownRef} $show={showFilters}>
               <FilterHeader>
-                <FilterHeaderText>All Categories</FilterHeaderText>
-                <OkButton onClick={handleApplyFilters}>Ok</OkButton>
+                <FilterHeaderText>{t('AllCategories')}</FilterHeaderText>
+                <OkButton onClick={handleApplyFilters}>{t('Ok')}</OkButton>
               </FilterHeader>
               {loadingCategories ? (
                 <LoadingContainer>
-                  <LoadingText>Loading categories...</LoadingText>
+                  <LoadingText>{t('LoadingCategories')}</LoadingText>
                 </LoadingContainer>
               ) : clothingCategories.length === 0 ? (
-                <NoCategoriesText>No categories available</NoCategoriesText>
+                <NoCategoriesText>{t('NoCategoriesAvailable')}</NoCategoriesText>
               ) : (
                 clothingCategories.map((category) => (
                   <CategoryItem key={category.id}>
                     <CategoryHeader onClick={() => handleCategoryToggle(category.id)}>
                       <ImageTextContainer>
                         <CategoryImage
-                          src={category.subcategories && category.subcategories.length > 0 && category.subcategories[0].image_url
-                            ? category.subcategories[0].image_url
-                            : 'https://via.placeholder.com/44'}
+                          src={category.subcategories?.[0]?.image_url || 'https://via.placeholder.com/44'}
                           alt={category.name}
                         />
                         <CategoryText>{category.name}</CategoryText>
@@ -589,7 +514,7 @@ const ProductList = () => {
                             </SubcategoryButton>
                           ))
                         ) : (
-                          <NoCategoriesText>No subcategories available</NoCategoriesText>
+                          <NoCategoriesText>{t('NoSubcategoriesAvailable')}</NoCategoriesText>
                         )}
                       </SubcategoryGrid>
                     )}
@@ -600,7 +525,7 @@ const ProductList = () => {
           </FilterButtonContainer>
         </HeaderSection>
         {products.length === 0 ? (
-          <NoProductsText>No products found</NoProductsText>
+          <NoProductsText>{t('NoProductsFound')}</NoProductsText>
         ) : (
           <>
             <ItemsList
@@ -612,7 +537,7 @@ const ProductList = () => {
             />
             {hasMore && (
               <LoadMoreButton onClick={handleLoadMore} disabled={loadingMore}>
-                {loadingMore ? 'Loading...' : 'Load More'}
+                {loadingMore ? t('Loading') : t('LoadMore')}
               </LoadMoreButton>
             )}
           </>

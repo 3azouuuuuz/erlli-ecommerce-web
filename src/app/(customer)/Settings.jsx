@@ -4,12 +4,12 @@ import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { IoChevronForward } from 'react-icons/io5';
+import { useTranslation } from 'react-i18next';
 
 const PageContainer = styled.div`
   min-height: 100vh;
   background: white;
 `;
-
 const Container = styled.div`
   padding: 80px 0 40px;
   width: 100%;
@@ -17,7 +17,6 @@ const Container = styled.div`
   flex-direction: column;
   gap: 25px;
 `;
-
 const ContentWrapper = styled.div`
   max-width: 1400px;
   width: 100%;
@@ -26,36 +25,30 @@ const ContentWrapper = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 60px;
-
   @media (max-width: 1200px) {
     grid-template-columns: 1fr 1fr;
     gap: 40px;
   }
-
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 25px;
     padding: 0 16px;
   }
 `;
-
 const Section = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0;
 `;
-
 const Header = styled.div`
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
   padding: 0 40px;
-
   @media (max-width: 768px) {
     padding: 0 16px;
   }
 `;
-
 const PageTitle = styled.h1`
   font-size: 28px;
   font-weight: 700;
@@ -65,7 +58,6 @@ const PageTitle = styled.h1`
   margin: 0;
   color: #000;
 `;
-
 const SectionTitle = styled.h2`
   font-size: 21px;
   font-weight: 700;
@@ -77,7 +69,6 @@ const SectionTitle = styled.h2`
   padding-bottom: 12px;
   border-bottom: 2px solid #00BC7D;
 `;
-
 const SettingsBox = styled.button`
   background: transparent;
   border: none;
@@ -91,18 +82,15 @@ const SettingsBox = styled.button`
   width: 100%;
   text-align: left;
   border-radius: 8px;
-
   &:hover {
     background: rgba(0, 188, 125, 0.05);
     border-color: rgba(0, 188, 125, 0.2);
     transform: translateX(4px);
   }
-
   &:active {
     background: rgba(0, 188, 125, 0.08);
   }
 `;
-
 const SettingsLabel = styled.span`
   font-size: 16px;
   font-weight: 600;
@@ -110,25 +98,21 @@ const SettingsLabel = styled.span`
   line-height: 21px;
   color: ${props => props.danger ? '#D97474' : '#000000'};
 `;
-
 const RightContent = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
 `;
-
 const CountryText = styled.span`
   font-size: 14px;
   font-weight: 500;
   font-family: 'Nunito Sans', sans-serif;
   color: #666;
 `;
-
 const ArrowIcon = styled(IoChevronForward)`
   font-size: 20px;
   color: #666;
 `;
-
 const DeleteButton = styled.button`
   background: transparent;
   border: none;
@@ -139,13 +123,11 @@ const DeleteButton = styled.button`
   text-align: left;
   border-radius: 8px;
   transition: all 0.3s ease;
-
   &:hover {
     background: rgba(217, 116, 116, 0.05);
     transform: translateX(4px);
   }
 `;
-
 const DeleteText = styled.span`
   font-size: 16px;
   font-weight: 600;
@@ -153,7 +135,6 @@ const DeleteText = styled.span`
   line-height: 21px;
   color: #D97474;
 `;
-
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -166,13 +147,11 @@ const ModalOverlay = styled.div`
   align-items: center;
   z-index: 1000;
   animation: fadeIn 0.2s ease;
-
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
   }
 `;
-
 const ModalContainer = styled.div`
   background: white;
   width: 90%;
@@ -184,7 +163,6 @@ const ModalContainer = styled.div`
   align-items: center;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
   animation: slideUp 0.3s ease;
-
   @keyframes slideUp {
     from {
       opacity: 0;
@@ -196,7 +174,6 @@ const ModalContainer = styled.div`
     }
   }
 `;
-
 const ModalTitle = styled.h2`
   font-size: 20px;
   font-weight: 700;
@@ -206,7 +183,6 @@ const ModalTitle = styled.h2`
   line-height: 20px;
   margin: 0 0 8px 0;
 `;
-
 const ModalSubtitle = styled.p`
   font-size: 13px;
   font-weight: 600;
@@ -215,7 +191,6 @@ const ModalSubtitle = styled.p`
   text-align: center;
   margin: 0 0 16px 0;
 `;
-
 const ModalInput = styled.input`
   width: 100%;
   padding: 12px 16px;
@@ -227,24 +202,20 @@ const ModalInput = styled.input`
   margin-bottom: 16px;
   outline: none;
   transition: all 0.2s ease;
-
   &:focus {
     border-color: #00BC7D;
     background: white;
   }
-
   &::placeholder {
     color: #666;
   }
 `;
-
 const ModalButtonContainer = styled.div`
   display: flex;
   justify-content: center;
   width: 100%;
   gap: 12px;
 `;
-
 const ModalButton = styled.button`
   padding: 12px 24px;
   border-radius: 11px;
@@ -257,43 +228,34 @@ const ModalButton = styled.button`
   text-align: center;
   transition: all 0.2s ease;
   flex: 1;
-
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
-
   &:active {
     transform: translateY(0);
   }
-
   &:disabled {
     cursor: not-allowed;
     opacity: 0.6;
   }
 `;
-
 const CancelButton = styled(ModalButton)`
   background: #E7E8EB;
   color: #000;
-
   &:hover {
     background: #D8D9DC;
   }
 `;
-
 const DeleteModalButton = styled(ModalButton)`
   background: #D97474;
   color: #FFFFFF;
-
   &:hover {
     background: #C96565;
   }
-
   &:disabled {
     background: #F0F0F0;
     color: #999;
-
     &:hover {
       background: #F0F0F0;
       transform: none;
@@ -301,7 +263,6 @@ const DeleteModalButton = styled(ModalButton)`
     }
   }
 `;
-
 const Spacer = styled.div`
   height: 30px;
 `;
@@ -309,7 +270,8 @@ const Spacer = styled.div`
 const Settings = () => {
   const navigate = useNavigate();
   const { profile, logout } = useAuth();
-  const [country, setCountry] = useState(profile?.country || 'Choose Your Country');
+  const { t } = useTranslation();
+  const [country, setCountry] = useState(profile?.country || t('ChooseYourCountry'));
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
 
@@ -322,46 +284,42 @@ const Settings = () => {
           .eq('id', profile.id)
           .single();
         if (data && !error) {
-          setCountry(data.country || 'Choose Your Country');
+          setCountry(data.country || t('ChooseYourCountry'));
         } else if (error) {
           console.error('Error fetching country:', error.message);
         }
       }
     };
     fetchCountry();
-  }, [profile?.id]);
+  }, [profile?.id, t]);
 
   const handleSignOut = async () => {
     try {
       await logout();
       console.log('User signed out successfully');
-      navigate('/welcome');
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error.message);
-      alert('Failed to sign out');
+      alert(t('FailedToSignOut'));
     }
   };
 
   const handleDeleteAccount = async () => {
     if (deleteInput !== 'DELETE') {
-      alert('Please type DELETE to confirm');
+      alert(t('TypeDeleteToConfirm'));
       return;
     }
     try {
-      // Delete related data from pins table
       await supabase.from('pins').delete().eq('user_id', profile.id);
-      // Delete profile from profiles table
       await supabase.from('profiles').delete().eq('id', profile.id);
-      // Delete user from auth.users (requires admin privileges or RLS bypass)
       await supabase.auth.admin.deleteUser(profile.id);
-      // Sign out and redirect
       await logout();
       console.log('Account deleted successfully');
       navigate('/welcome');
-      alert('Account deleted successfully');
+      alert(t('AccountDeletedSuccessfully'));
     } catch (error) {
       console.error('Error deleting account:', error.message);
-      alert('Failed to delete account');
+      alert(t('FailedToDeleteAccount'));
     } finally {
       setIsDeleteModalVisible(false);
       setDeleteInput('');
@@ -372,88 +330,83 @@ const Settings = () => {
     <PageContainer>
       <Container>
         <Header>
-          <PageTitle>Settings</PageTitle>
+          <PageTitle>{t('Settings')}</PageTitle>
         </Header>
-
         <ContentWrapper>
           <Section>
-            <SectionTitle>Personal</SectionTitle>
+            <SectionTitle>{t('Personal')}</SectionTitle>
             <SettingsBox onClick={() => navigate('/ProfileSettings')}>
-              <SettingsLabel>Profile</SettingsLabel>
+              <SettingsLabel>{t('Profile')}</SettingsLabel>
               <ArrowIcon />
             </SettingsBox>
             <SettingsBox onClick={() => navigate('/SecuritySettings')}>
-              <SettingsLabel>Security</SettingsLabel>
+              <SettingsLabel>{t('Security')}</SettingsLabel>
               <ArrowIcon />
             </SettingsBox>
             <SettingsBox onClick={() => navigate('/AdressSettings')}>
-              <SettingsLabel>Shipping Address</SettingsLabel>
+              <SettingsLabel>{t('ShippingAddress')}</SettingsLabel>
               <ArrowIcon />
             </SettingsBox>
             <SettingsBox onClick={() => navigate('/PaymentMethods')}>
-              <SettingsLabel>Payment Methods</SettingsLabel>
+              <SettingsLabel>{t('PaymentMethods')}</SettingsLabel>
               <ArrowIcon />
             </SettingsBox>
           </Section>
-
           <Section>
-            <SectionTitle>Shop</SectionTitle>
+            <SectionTitle>{t('Shop')}</SectionTitle>
             <SettingsBox onClick={() => navigate('/Country')}>
-              <SettingsLabel>Country</SettingsLabel>
+              <SettingsLabel>{t('Country')}</SettingsLabel>
               <RightContent>
                 <CountryText>{country}</CountryText>
                 <ArrowIcon />
               </RightContent>
             </SettingsBox>
             <SettingsBox onClick={() => navigate('/Currency')}>
-              <SettingsLabel>Currency</SettingsLabel>
+              <SettingsLabel>{t('Currency')}</SettingsLabel>
               <ArrowIcon />
             </SettingsBox>
           </Section>
-
           <Section>
-            <SectionTitle>Account</SectionTitle>
+            <SectionTitle>{t('Account')}</SectionTitle>
             <SettingsBox onClick={() => navigate('/Lang')}>
-              <SettingsLabel>Language</SettingsLabel>
+              <SettingsLabel>{t('Language')}</SettingsLabel>
               <ArrowIcon />
             </SettingsBox>
             <SettingsBox onClick={() => navigate('/About')}>
-              <SettingsLabel>About</SettingsLabel>
+              <SettingsLabel>{t('About')}</SettingsLabel>
               <ArrowIcon />
             </SettingsBox>
             <SettingsBox onClick={handleSignOut}>
-              <SettingsLabel danger>Sign Out</SettingsLabel>
+              <SettingsLabel danger>{t('SignOut')}</SettingsLabel>
               <ArrowIcon />
             </SettingsBox>
             <DeleteButton onClick={() => setIsDeleteModalVisible(true)}>
-              <DeleteText>Delete My Account</DeleteText>
+              <DeleteText>{t('DeleteMyAccount')}</DeleteText>
             </DeleteButton>
           </Section>
         </ContentWrapper>
-
         <Spacer />
       </Container>
-
       {isDeleteModalVisible && (
         <ModalOverlay onClick={() => setIsDeleteModalVisible(false)}>
           <ModalContainer onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Delete Confirmation</ModalTitle>
-            <ModalSubtitle>Type DELETE to confirm</ModalSubtitle>
+            <ModalTitle>{t('DeleteConfirmation')}</ModalTitle>
+            <ModalSubtitle>{t('TypeDeleteToConfirm')}</ModalSubtitle>
             <ModalInput
               type="text"
               value={deleteInput}
               onChange={(e) => setDeleteInput(e.target.value)}
-              placeholder="Type DELETE"
+              placeholder={t('TypeDELETE')}
             />
             <ModalButtonContainer>
               <CancelButton onClick={() => setIsDeleteModalVisible(false)}>
-                Cancel
+                {t('Cancel')}
               </CancelButton>
               <DeleteModalButton
                 onClick={handleDeleteAccount}
                 disabled={deleteInput !== 'DELETE'}
               >
-                Delete
+                {t('Delete')}
               </DeleteModalButton>
             </ModalButtonContainer>
           </ModalContainer>

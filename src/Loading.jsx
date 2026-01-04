@@ -1,6 +1,4 @@
-// Erlli Web/src/Loading.jsx
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styled, { createGlobalStyle } from 'styled-components';
 import { hp, wp } from './helpers/common'; // Adjusted path assuming helpers is in src/helpers
 import icon2 from './assets/images/icon2.png'; // Adjusted path assuming icon2 is in src/assets/images
@@ -37,6 +35,7 @@ const Spinner = styled.div`
   width: 250px;
   height: 250px;
   z-index: 2;
+  
   &::before,
   &::after {
     content: '';
@@ -50,9 +49,11 @@ const Spinner = styled.div`
     transform: translate(-50%, -50%);
     animation: pulse 1.5s infinite ease-out;
   }
+  
   &::after {
     animation-delay: 0.75s;
   }
+  
   @keyframes pulse {
     0% {
       transform: translate(-50%, -50%) scale(0);
@@ -76,18 +77,17 @@ const SpinnerImage = styled.img`
 `;
 
 function Loading() {
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-
+  
   useEffect(() => {
-    // Simulate data fetching with a 2-second delay
+    // Just set loading to false after delay
     const timer = setTimeout(() => {
       setIsLoading(false);
-      navigate('/', { replace: true }); // Navigate to shop page
     }, 2000);
+    
     return () => clearTimeout(timer); // Cleanup on unmount
-  }, [navigate]);
-
+  }, []);
+  
   return (
     <>
       <GlobalStyle />

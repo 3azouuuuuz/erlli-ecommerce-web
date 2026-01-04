@@ -6,7 +6,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { IoTrashOutline, IoPencilOutline, IoTrendingUpSharp, IoTrendingDownSharp, IoEyeOutline, IoCubeOutline, IoCartOutline, IoAnalyticsOutline, IoPeopleOutline, IoChevronForwardOutline } from 'react-icons/io5';
 import VendorHeader from '../../components/VendorHeader';
-
+import { useCurrency } from '../../contexts/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 // Styled Components
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -698,15 +699,29 @@ const ErrorText = styled.p`
 const VendorIndex = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { currency, formatCurrency } = useCurrency();
+  const { t } = useTranslation();
   const [topSellingProducts, setTopSellingProducts] = useState([]);
   const [loadingTopProducts, setLoadingTopProducts] = useState(true);
   const [error, setError] = useState(null);
   const [chartData, setChartData] = useState([]);
+  
+  // Store raw USD values
+  const [earningsUSD, setEarningsUSD] = useState(0);
+  const [totalSalesUSD, setTotalSalesUSD] = useState(0);
+  
+  // Display values (formatted)
   const [earnings, setEarnings] = useState('$0.00');
   const [totalSales, setTotalSales] = useState('$0.00');
   const [pendingOrders, setPendingOrders] = useState(0);
   const [deliveredOrders, setDeliveredOrders] = useState(0);
   const [canceledOrders, setCanceledOrders] = useState(0);
+  const [formattedRevenue, setFormattedRevenue] = useState('$0.00');
+  const [formattedPrevRevenue, setFormattedPrevRevenue] = useState('$0.00');
+  
+  // Chart state for currency conversion
+  const [maxRevenue, setMaxRevenue] = useState(2000);
+  const [yAxisLabels, setYAxisLabels] = useState(['2000', '1500', '1000', '500', '0']);
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -718,22 +733,81 @@ const VendorIndex = () => {
   const growthState = currentRevenue > previousRevenue ? 'up' : currentRevenue < previousRevenue ? 'down' : 'stable';
   const percentageChange = previousRevenue !== 0
     ? ((currentRevenue - previousRevenue) / previousRevenue * 100).toFixed(1)
-    : 0;
+    : currentRevenue > 0 ? 100 : 0;
 
-  const MAX_REVENUE = 2000;
-  const yAxisLabels = ['2000', '1500', '1000', '500', '0'];
-
+  // Fetch vendor data on mount
   useEffect(() => {
     fetchVendorData();
   }, [profile?.id]);
 
+  // Convert currency when currency changes
+  useEffect(() => {
+    const convertAllValues = async () => {
+      console.log('Converting currency, earningsUSD:', earningsUSD, 'totalSalesUSD:', totalSalesUSD);
+      
+      // Convert earnings and sales from stored USD values
+      if (earningsUSD > 0 || totalSalesUSD > 0) {
+        const convertedEarnings = await formatCurrency(earningsUSD);
+        const convertedSales = await formatCurrency(totalSalesUSD);
+        console.log('Converted:', convertedEarnings, convertedSales);
+        setEarnings(convertedEarnings);
+        setTotalSales(convertedSales);
+      }
+
+      // Convert chart revenue values
+      if (chartData.length > 0 && currentRevenue !== undefined) {
+        const convertedCurrent = await formatCurrency(currentRevenue);
+        const convertedPrev = await formatCurrency(previousRevenue || 0);
+        setFormattedRevenue(convertedCurrent);
+        setFormattedPrevRevenue(convertedPrev);
+        
+        // Convert Y-axis labels based on currency
+        const maxRevenueInCurrency = await formatCurrency(2000);
+        const extractedMax = parseFloat(maxRevenueInCurrency.replace(/[^0-9.]/g, ''));
+        setMaxRevenue(extractedMax);
+        
+        // Calculate proportional Y-axis values
+        const step = extractedMax / 4;
+        const newLabels = [
+          Math.round(extractedMax).toString(),
+          Math.round(extractedMax - step).toString(),
+          Math.round(extractedMax - step * 2).toString(),
+          Math.round(extractedMax - step * 3).toString(),
+          '0'
+        ];
+        setYAxisLabels(newLabels);
+      }
+
+      // Convert product prices
+      if (topSellingProducts.length > 0) {
+        const productsWithConvertedPrices = await Promise.all(
+          topSellingProducts.map(async (product) => {
+            return {
+              ...product,
+              displayPrice: await formatCurrency(product.price),
+              priceCurrency: currency
+            };
+          })
+        );
+        setTopSellingProducts(productsWithConvertedPrices);
+      }
+    };
+
+    convertAllValues();
+  }, [currency, earningsUSD, totalSalesUSD, chartData, currentRevenue, previousRevenue]);
+
   const fetchVendorData = async () => {
-    if (!profile?.id) return;
+    if (!profile?.id) {
+      console.log('No profile ID');
+      return;
+    }
 
     setLoadingTopProducts(true);
     setError(null);
 
     try {
+      console.log('Fetching orders for vendor:', profile.id);
+      
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('id, amount, delivery_status, status, items, created_at')
@@ -742,6 +816,8 @@ const VendorIndex = () => {
 
       if (ordersError) throw ordersError;
 
+      console.log('Orders fetched:', orders);
+
       const { data: vendorProducts, error: productsError } = await supabase
         .from('products')
         .select('id, name, description, price, image_url, vendor_id')
@@ -749,29 +825,33 @@ const VendorIndex = () => {
 
       if (productsError) throw productsError;
 
-      const months = [];
-      const currentYear = now.getFullYear();
-      for (let month = 1; month <= 12; month++) {
-        months.push({
-          year: currentYear,
-          month: month,
-          monthName: new Date(currentYear, month - 1, 1).toLocaleString('default', { month: 'short' }),
-        });
-      }
+      console.log('Products fetched:', vendorProducts);
 
-      const monthlyRevenue = months.map(({ year, month }) => {
-        const monthOrders = orders.filter(order => {
-          const orderDate = new Date(order.created_at);
-          return orderDate.getFullYear() === year && orderDate.getMonth() + 1 === month && order.status === 'succeeded';
-        });
-        const revenueBeforeFee = monthOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
-        const revenue = revenueBeforeFee * 0.88;
-        return {
-          month: months.find(m => m.month === month).monthName,
-          revenue,
-          isHighlighted: month === currentMonth,
-        };
-      });
+      const monthKeys = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const months = [];
+const currentYear = now.getFullYear();
+for (let month = 1; month <= 12; month++) {
+  months.push({
+    year: currentYear,
+    month: month,
+    monthName: t(monthKeys[month - 1]),
+  });
+}
+
+      const monthlyRevenue = months.map(({ year, month, monthName }) => {
+  const monthOrders = orders.filter(order => {
+    const orderDate = new Date(order.created_at);
+    return orderDate.getFullYear() === year && orderDate.getMonth() + 1 === month && order.status === 'succeeded';
+  });
+  const revenueBeforeFee = monthOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
+  const revenue = revenueBeforeFee * 0.88;
+  return {
+    month: monthName,
+    revenue,
+    isHighlighted: month === currentMonth,
+  };
+});
 
       setChartData(monthlyRevenue);
 
@@ -823,6 +903,9 @@ const VendorIndex = () => {
         }
       });
 
+      console.log('Vendor Total Sales:', vendorTotalSales);
+      console.log('Product Counts:', productCounts);
+
       const sortedProducts = Object.values(productCounts)
         .sort((a, b) => b.quantity - a.quantity)
         .slice(0, 4)
@@ -835,15 +918,26 @@ const VendorIndex = () => {
           vendor_id: profile.id,
         }));
 
-      setTotalSales(`$${vendorTotalSales.toFixed(2)}`);
-      setEarnings(`$${(vendorTotalSales * 0.88).toFixed(2)}`);
+      // Store the raw USD values
+      setTotalSalesUSD(vendorTotalSales);
+      setEarningsUSD(vendorTotalSales * 0.88);
+      
+      // Set formatted values immediately for initial load
+      const initialEarnings = await formatCurrency(vendorTotalSales * 0.88);
+      const initialSales = await formatCurrency(vendorTotalSales);
+      setEarnings(initialEarnings);
+      setTotalSales(initialSales);
+      
       setPendingOrders(vendorOrderStatuses.processing);
       setDeliveredOrders(vendorOrderStatuses.delivered);
       setCanceledOrders(vendorOrderStatuses.canceled);
       setTopSellingProducts(sortedProducts);
+      
+      console.log('Set earningsUSD:', vendorTotalSales * 0.88);
+      console.log('Set totalSalesUSD:', vendorTotalSales);
     } catch (err) {
       console.error('Error fetching vendor data:', err);
-      setError('Failed to load vendor data');
+      setError(t('FailedToLoadVendorData'));
       setTopSellingProducts([]);
       setChartData([]);
     } finally {
@@ -853,7 +947,7 @@ const VendorIndex = () => {
 
   const handleDeleteProduct = async (e, productId) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    if (!window.confirm(t('AreYouSureDeleteProduct'))) return;
 
     try {
       const { error } = await supabase
@@ -865,10 +959,10 @@ const VendorIndex = () => {
       if (error) throw error;
 
       setTopSellingProducts(topSellingProducts.filter(p => p.id !== productId));
-      alert('Product deleted successfully');
+      alert(t('ProductDeletedSuccessfully'));
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Failed to delete product');
+      alert(t('FailedToDeleteProduct'));
     }
   };
 
@@ -893,11 +987,12 @@ const VendorIndex = () => {
       <Container>
         <StatsRow>
           <EarningsCard>
-            <EarningsLabel>Your Earnings</EarningsLabel>
+            <EarningsLabel>{t('YourEarnings')}</EarningsLabel>
             <EarningsAmount>{earnings}</EarningsAmount>
           </EarningsCard>
         </StatsRow>
-  <QuickActionsGrid>
+
+        <QuickActionsGrid>
           <QuickActionCard 
             $gradient="linear-gradient(135deg, #00BC7D 0%, #00E89D 100%)"
             onClick={() => navigate('/vendor/inventory')}
@@ -905,8 +1000,8 @@ const VendorIndex = () => {
             <QuickActionIcon>
               <IoCubeOutline />
             </QuickActionIcon>
-            <QuickActionTitle>Inventory</QuickActionTitle>
-            <QuickActionSubtitle>Manage your products and stock</QuickActionSubtitle>
+          <QuickActionTitle>{t('Inventory')}</QuickActionTitle>
+<QuickActionSubtitle>{t('ManageProductsAndStock')}</QuickActionSubtitle>
           </QuickActionCard>
 
           <QuickActionCard 
@@ -916,8 +1011,8 @@ const VendorIndex = () => {
             <QuickActionIcon>
               <IoCartOutline />
             </QuickActionIcon>
-            <QuickActionTitle>Orders</QuickActionTitle>
-            <QuickActionSubtitle>View and process customer orders</QuickActionSubtitle>
+            <QuickActionTitle>{t('Orders')}</QuickActionTitle>
+<QuickActionSubtitle>{t('ViewProcessCustomerOrders')}</QuickActionSubtitle>
           </QuickActionCard>
 
           <QuickActionCard 
@@ -927,37 +1022,34 @@ const VendorIndex = () => {
             <QuickActionIcon>
               <IoAnalyticsOutline />
             </QuickActionIcon>
-            <QuickActionTitle>Analytics</QuickActionTitle>
-            <QuickActionSubtitle>Track sales and performance</QuickActionSubtitle>
+          <QuickActionTitle>{t('Analytics')}</QuickActionTitle>
+<QuickActionSubtitle>{t('TrackSalesPerformance')}</QuickActionSubtitle>
           </QuickActionCard>
-
-         
         </QuickActionsGrid>
+
         <OrdersGrid>
           <OrderCard $color="#00BC7D" onClick={() => navigate('/vendor/orders?status=all')}>
             <OrderValue>{totalSales}</OrderValue>
-            <OrderLabel>Total Sales</OrderLabel>
+            <OrderLabel>{t('TotalSales')}</OrderLabel>
           </OrderCard>
           <OrderCard $color="#FFA940" onClick={() => navigate('/vendor/orders?status=processing')}>
             <OrderValue>{pendingOrders}</OrderValue>
-            <OrderLabel>Pending Orders</OrderLabel>
+            <OrderLabel>{t('PendingOrders')}</OrderLabel>
           </OrderCard>
           <OrderCard $color="#52C41A" onClick={() => navigate('/vendor/orders?status=shipped')}>
             <OrderValue>{deliveredOrders}</OrderValue>
-            <OrderLabel>Delivered Orders</OrderLabel>
+            <OrderLabel>{t('DeliveredOrders')}</OrderLabel>
           </OrderCard>
           <OrderCard $color="#FF4D4F" onClick={() => navigate('/vendor/orders?status=cancelled')}>
             <OrderValue>{canceledOrders}</OrderValue>
-            <OrderLabel>Canceled Orders</OrderLabel>
+            <OrderLabel>{t('CanceledOrders')}</OrderLabel>
           </OrderCard>
         </OrdersGrid>
 
-      
-
         <ChartSection onClick={() => navigate('/vendor/analytics')}>
           <ChartHeader>
-            <ChartTitle>Revenue</ChartTitle>
-            <ChartValue>${currentRevenue.toFixed(2)}</ChartValue>
+            <ChartTitle>{t('Revenue')}</ChartTitle>
+            <ChartValue>{formattedRevenue}</ChartValue>
             <ChartGrowth>
               <GrowthBubble $type={growthState}>
                 <IconCircle>
@@ -967,7 +1059,7 @@ const VendorIndex = () => {
                   {growthState === 'stable' ? '0.0%' : `${Math.abs(percentageChange)}%`}
                 </GrowthText>
               </GrowthBubble>
-              <GrowthComparison>From ${previousRevenue.toFixed(2)}</GrowthComparison>
+              <GrowthComparison>From {formattedPrevRevenue}</GrowthComparison>
             </ChartGrowth>
           </ChartHeader>
           <ChartWrapper>
@@ -979,12 +1071,12 @@ const VendorIndex = () => {
               </GridLines>
               <YAxis>
                 {yAxisLabels.map((label, index) => (
-                  <YAxisLabel key={index}>${label}</YAxisLabel>
+                  <YAxisLabel key={index}>{currency === 'usd' ? '$' : '€'}{label}</YAxisLabel>
                 ))}
               </YAxis>
               <ChartBars>
                 {chartData.map((data, index) => {
-                  const barHeight = (data.revenue / MAX_REVENUE) * 100;
+                  const barHeight = (data.revenue / maxRevenue) * 100;
                   return (
                     <BarContainer key={index}>
                       <Bar $height={barHeight} $highlighted={data.isHighlighted} />
@@ -998,9 +1090,9 @@ const VendorIndex = () => {
         </ChartSection>
 
         <SectionHeader>
-          <SectionTitle>Top Selling Products</SectionTitle>
+          <SectionTitle>{t('TopSellingProducts')}</SectionTitle>
           <ViewAllLink onClick={() => navigate('/vendor/inventory')}>
-            View All
+            {t('ViewAll')}
             <IoChevronForwardOutline />
           </ViewAllLink>
         </SectionHeader>
@@ -1008,13 +1100,13 @@ const VendorIndex = () => {
         {loadingTopProducts ? (
           <LoadingContainer>
             <Spinner />
-            <LoadingText>Loading products...</LoadingText>
+            <LoadingText>{t('LoadingProducts')}</LoadingText>
           </LoadingContainer>
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : topSellingProducts.length === 0 ? (
           <EmptyState>
-            <EmptyStateText>No products available yet</EmptyStateText>
+            <EmptyStateText>{t('NoProductsAvailableYet')}</EmptyStateText>
           </EmptyState>
         ) : (
           <ProductsGrid>
@@ -1025,7 +1117,7 @@ const VendorIndex = () => {
                   <ProductName>{item.name}</ProductName>
                   <ProductDescription>{item.description}</ProductDescription>
                   <ProductFooter>
-                    <ProductPrice>${item.price.toFixed(2)}</ProductPrice>
+                    <ProductPrice>{item.displayPrice || `$${item.price.toFixed(2)}`}</ProductPrice>
                     <ActionButtons onClick={(e) => e.stopPropagation()}>
                       <ViewButton onClick={() => handleViewProduct(item.id)} title="View">
                         <IoEyeOutline size={18} />

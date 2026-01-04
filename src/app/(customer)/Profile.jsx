@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
+import ShopHeader from '../../components/ShopHeader';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+import { IoStar, IoArrowForward, IoTicket, IoTime, IoGift } from 'react-icons/io5';
+import { MdLocalShipping, MdRateReview, MdError } from 'react-icons/md';
 import ProfileHeader from '../../components/ProfileHeader';
 import TitleWithAction from '../../components/TitleWithAction';
 import GridItems from '../../components/GridItems';
 import ItemsList from '../../components/Items';
 import MostPopular from '../../components/MostPopular';
-import { supabase } from '../../lib/supabase';
-import { IoStar, IoArrowForward, IoTicket, IoTime, IoGift } from 'react-icons/io5';
-import { MdLocalShipping, MdRateReview, MdError } from 'react-icons/md';
+import { useTranslation } from 'react-i18next';
 
 const PageContainer = styled.div`
   min-height: 100vh;
   background: white;
 `;
-
 const Container = styled.div`
   padding: 80px 16px 20px;
   max-width: 1200px;
@@ -24,11 +25,9 @@ const Container = styled.div`
   flex-direction: column;
   gap: 25px;
 `;
-
 const Greeting = styled.div`
   margin-top: 10px;
 `;
-
 const GreetingText = styled.h1`
   font-size: 28px;
   font-weight: 700;
@@ -38,7 +37,6 @@ const GreetingText = styled.h1`
   margin: 0;
   color: #202020;
 `;
-
 const SectionTitle = styled.h2`
   font-size: 21px;
   font-weight: 700;
@@ -48,22 +46,19 @@ const SectionTitle = styled.h2`
   margin: 0;
   color: #202020;
 `;
-
 const IconTextContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
 `;
-
 const StarIcon = styled(IoStar)`
   font-size: 15px;
   color: #00BC7D;
   margin-top: -2px;
 `;
-
 const AnnouncementContainer = styled.div`
-  background: ${props => props.$isExpiring 
-    ? 'linear-gradient(135deg, #FFF5F5 0%, #FFE8E8 100%)' 
+  background: ${props => props.$isExpiring
+    ? 'linear-gradient(135deg, #FFF5F5 0%, #FFE8E8 100%)'
     : 'linear-gradient(135deg, #F0FDF9 0%, #E6FCF5 100%)'};
   border-radius: 16px;
   padding: 20px;
@@ -71,13 +66,12 @@ const AnnouncementContainer = styled.div`
   flex-direction: column;
   gap: 12px;
   border: 2px solid ${props => props.$isExpiring ? '#FFD4D4' : '#D0FAE5'};
-  box-shadow: 0 4px 16px ${props => props.$isExpiring 
-    ? 'rgba(255, 77, 79, 0.1)' 
+  box-shadow: 0 4px 16px ${props => props.$isExpiring
+    ? 'rgba(255, 77, 79, 0.1)'
     : 'rgba(0, 188, 125, 0.1)'};
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-
   &::before {
     content: '';
     position: absolute;
@@ -85,26 +79,23 @@ const AnnouncementContainer = styled.div`
     left: 0;
     right: 0;
     height: 4px;
-    background: ${props => props.$isExpiring 
-      ? 'linear-gradient(90deg, #FF4D4F 0%, #FF7875 100%)' 
+    background: ${props => props.$isExpiring
+      ? 'linear-gradient(90deg, #FF4D4F 0%, #FF7875 100%)'
       : 'linear-gradient(90deg, #00BC7D 0%, #00E89D 100%)'};
   }
-
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px ${props => props.$isExpiring 
-      ? 'rgba(255, 77, 79, 0.15)' 
+    box-shadow: 0 8px 24px ${props => props.$isExpiring
+      ? 'rgba(255, 77, 79, 0.15)'
       : 'rgba(0, 188, 125, 0.15)'};
   }
 `;
-
 const AnnouncementHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 4px;
 `;
-
 const AnnouncementIconWrapper = styled.div`
   width: 36px;
   height: 36px;
@@ -113,16 +104,14 @@ const AnnouncementIconWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px ${props => props.$isExpiring 
-    ? 'rgba(255, 77, 79, 0.2)' 
+  box-shadow: 0 2px 8px ${props => props.$isExpiring
+    ? 'rgba(255, 77, 79, 0.2)'
     : 'rgba(0, 188, 125, 0.2)'};
-
   svg {
     font-size: 20px;
     color: ${props => props.$isExpiring ? '#FF4D4F' : '#00BC7D'};
   }
 `;
-
 const AnnouncementTitle = styled.h3`
   font-size: 16px;
   font-weight: 700;
@@ -131,7 +120,6 @@ const AnnouncementTitle = styled.h3`
   margin: 0;
   flex: 1;
 `;
-
 const AnnouncementBody = styled.div`
   display: flex;
   flex-direction: row;
@@ -139,7 +127,6 @@ const AnnouncementBody = styled.div`
   justify-content: space-between;
   gap: 16px;
   padding-left: 46px;
-
   @media (max-width: 768px) {
     padding-left: 0;
     flex-direction: column;
@@ -147,14 +134,12 @@ const AnnouncementBody = styled.div`
     gap: 12px;
   }
 `;
-
 const AnnouncementTextWrapper = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
 `;
-
 const AnnouncementText = styled.p`
   font-size: 14px;
   line-height: 20px;
@@ -163,7 +148,6 @@ const AnnouncementText = styled.p`
   color: ${props => props.$isExpiring ? '#D32F2F' : '#333'};
   margin: 0;
 `;
-
 const AnnouncementSubtext = styled.p`
   font-size: 12px;
   line-height: 16px;
@@ -174,15 +158,13 @@ const AnnouncementSubtext = styled.p`
   display: flex;
   align-items: center;
   gap: 6px;
-
   svg {
     font-size: 14px;
   }
 `;
-
 const ActionButton = styled.button`
-  background: ${props => props.$isExpiring 
-    ? 'linear-gradient(135deg, #FF4D4F 0%, #FF7875 100%)' 
+  background: ${props => props.$isExpiring
+    ? 'linear-gradient(135deg, #FF4D4F 0%, #FF7875 100%)'
     : 'linear-gradient(135deg, #00BC7D 0%, #00A66A 100%)'};
   color: white;
   border: none;
@@ -196,32 +178,27 @@ const ActionButton = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 12px ${props => props.$isExpiring 
-    ? 'rgba(255, 77, 79, 0.3)' 
+  box-shadow: 0 4px 12px ${props => props.$isExpiring
+    ? 'rgba(255, 77, 79, 0.3)'
     : 'rgba(0, 188, 125, 0.3)'};
   white-space: nowrap;
-
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px ${props => props.$isExpiring 
-      ? 'rgba(255, 77, 79, 0.4)' 
+    box-shadow: 0 6px 16px ${props => props.$isExpiring
+      ? 'rgba(255, 77, 79, 0.4)'
       : 'rgba(0, 188, 125, 0.4)'};
   }
-
   &:active {
     transform: translateY(0);
   }
-
   svg {
     font-size: 18px;
   }
-
   @media (max-width: 768px) {
     width: 100%;
     justify-content: center;
   }
 `;
-
 const RecentlyViewedContainer = styled.div`
   display: flex;
   overflow-x: auto;
@@ -233,7 +210,6 @@ const RecentlyViewedContainer = styled.div`
     display: none;
   }
 `;
-
 const TopProductCard = styled.div`
   min-width: 120px;
   width: 120px;
@@ -251,13 +227,11 @@ const TopProductCard = styled.div`
     transform: scale(0.98);
   }
 `;
-
 const TopProductImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
 `;
-
 const OrderButton = styled.button`
   width: 100%;
   background: #FFFFFF;
@@ -300,7 +274,6 @@ const OrderButton = styled.button`
     height: 300px;
   }
 `;
-
 const OrdersGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -311,7 +284,6 @@ const OrdersGrid = styled.div`
     gap: 12px;
   }
 `;
-
 const OrderCard = styled.div`
   background: white;
   border-radius: 16px;
@@ -350,7 +322,6 @@ const OrderCard = styled.div`
     padding: 16px;
   }
 `;
-
 const IconWrapper = styled.div`
   width: 56px;
   height: 56px;
@@ -372,7 +343,6 @@ const IconWrapper = styled.div`
     }
   }
 `;
-
 const OrderInfo = styled.div`
   display: flex;
   flex-direction: column;
@@ -383,7 +353,6 @@ const OrderInfo = styled.div`
     flex: 1;
   }
 `;
-
 const OrderTitle = styled.h3`
   font-size: 16px;
   font-weight: 700;
@@ -394,7 +363,6 @@ const OrderTitle = styled.h3`
     font-size: 15px;
   }
 `;
-
 const OrderSubtitle = styled.p`
   font-size: 13px;
   font-weight: 500;
@@ -407,7 +375,6 @@ const OrderSubtitle = styled.p`
     font-size: 12px;
   }
 `;
-
 const Badge = styled.div`
   position: absolute;
   top: -6px;
@@ -431,7 +398,6 @@ const Badge = styled.div`
     right: 8px;
   }
 `;
-
 const NoItemsText = styled.p`
   font-size: 16px;
   color: #666;
@@ -439,14 +405,12 @@ const NoItemsText = styled.p`
   text-align: center;
   padding: 20px 0;
 `;
-
 const Loader = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 40px 0;
 `;
-
 const Spinner = styled.div`
   width: 40px;
   height: 40px;
@@ -463,6 +427,7 @@ const Spinner = styled.div`
 const Profile = () => {
   const { profile, user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [hasProcessingOrder, setHasProcessingOrder] = useState(false);
   const [hasFailedOrder, setHasFailedOrder] = useState(false);
@@ -476,7 +441,6 @@ const Profile = () => {
   const [isExpiring, setIsExpiring] = useState(false);
   const [expiryDate, setExpiryDate] = useState('');
 
-  // Fetch Recently Viewed
   useEffect(() => {
     const fetchRecentlyViewed = async () => {
       if (!profile?.id) return;
@@ -496,7 +460,7 @@ const Profile = () => {
           name: view.products.name,
           image_url: view.products.image_url,
           price: view.products.price || 0,
-          description: view.products.description || 'No description',
+          description: view.products.description || t('NoDescription'),
         }));
         setRecentlyViewed(viewedProducts);
       } catch (error) {
@@ -505,9 +469,8 @@ const Profile = () => {
       }
     };
     fetchRecentlyViewed();
-  }, [profile?.id]);
+  }, [profile?.id, t]);
 
-  // Fetch Orders Status
   useEffect(() => {
     const fetchOrders = async () => {
       if (!profile?.id) return;
@@ -517,15 +480,15 @@ const Profile = () => {
           .select('delivery_status')
           .eq('user_id', profile.id);
         if (error) throw error;
-        
+
         const processingOrders = data.filter(order => order.delivery_status === 'processing');
         const failedOrders = data.filter(order => order.delivery_status === 'failed');
         const deliveredOrders = data.filter(order => order.delivery_status === 'delivered');
-        
+
         setHasProcessingOrder(processingOrders.length > 0);
         setHasFailedOrder(failedOrders.length > 0);
         setHasItemsToReview(deliveredOrders.length > 0);
-        
+
         setProcessingCount(processingOrders.length);
         setFailedCount(failedOrders.length);
         setToReviewCount(deliveredOrders.length);
@@ -536,7 +499,6 @@ const Profile = () => {
     fetchOrders();
   }, [profile?.id]);
 
-  // Fetch Top Products
   useEffect(() => {
     const fetchTopProducts = async () => {
       try {
@@ -562,7 +524,7 @@ const Profile = () => {
         const sortedProducts = Object.values(productCounts)
           .sort((a, b) => b.count - a.count)
           .slice(0, 4)
-          .map(item => ({
+          .map((item) => ({
             ...item.product,
             orderCount: item.count
           }));
@@ -591,63 +553,91 @@ const Profile = () => {
     fetchTopProducts();
   }, []);
 
-  // Fetch Voucher State for Announcement
-  useEffect(() => {
-    const fetchVoucherState = async () => {
-      if (!profile?.id) {
+ useEffect(() => {
+  const fetchVoucherState = async () => {
+    if (!profile?.id) {
+      setAnnouncementMessage('');
+      return;
+    }
+    try {
+      // First, check if the user has made any successful purchases
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('status', 'succeeded')
+        .limit(1);
+      
+      if (ordersError) throw ordersError;
+      
+      // If no successful orders, don't show any voucher announcement
+      if (!ordersData || ordersData.length === 0) {
         setAnnouncementMessage('');
         return;
       }
-      try {
-        const { data: userRewardsData, error: userRewardsError } = await supabase
-          .from('user_rewards')
-          .select('is_collected, is_used, validity')
-          .eq('user_id', profile.id)
-          .eq('reward_id', 1);
-        if (userRewardsError) throw userRewardsError;
-        let message = '';
-        let expiring = false;
-        let expiryDateStr = '';
+      
+      // User has made a purchase, now check for voucher
+      const { data: userRewardsData, error: userRewardsError } = await supabase
+        .from('user_rewards')
+        .select('is_collected, is_used, validity')
+        .eq('user_id', profile.id)
+        .eq('reward_id', 1);
+      
+      if (userRewardsError) throw userRewardsError;
+      
+      let message = '';
+      let expiring = false;
+      let expiryDateStr = '';
+
+      if (userRewardsData && userRewardsData.length > 0) {
+        const userReward = userRewardsData[0];
         
-        if (userRewardsData && userRewardsData.length > 0) {
-          const userReward = userRewardsData[0];
-          if (userReward.is_collected && !userReward.is_used) {
-            const currentDate = new Date();
-            const expiryDate = new Date(userReward.validity);
-            const timeDiff = expiryDate - currentDate;
-            const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-            if (daysDiff >= 0 && daysDiff <= 3) {
-              const formattedDate = expiryDate.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
-              });
-              message = `Your voucher is expiring soon!`;
-              expiryDateStr = formattedDate;
-              expiring = true;
-            }
-          } else if (!userReward.is_collected) {
-            message = 'You have an exclusive voucher waiting for you!';
+        // Check if voucher is collected but not used
+        if (userReward.is_collected && !userReward.is_used) {
+          const currentDate = new Date();
+          const expiryDate = new Date(userReward.validity);
+          const timeDiff = expiryDate - currentDate;
+          const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+          
+          // Show expiring warning if within 3 days
+          if (daysDiff >= 0 && daysDiff <= 3) {
+            const formattedDate = expiryDate.toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            });
+            message = t('VoucherExpiringSoon');
+            expiryDateStr = formattedDate;
+            expiring = true;
           }
-        } else {
-          message = 'You have an exclusive voucher waiting for you!';
+        } else if (!userReward.is_collected && !userReward.is_used) {
+          // Voucher exists but not collected yet
+          message = t('NewVoucherUnlocked');
         }
-        setAnnouncementMessage(message);
-        setIsExpiring(expiring);
-        setExpiryDate(expiryDateStr);
-      } catch (error) {
-        console.error('Error fetching voucher state:', error);
-        setAnnouncementMessage('');
+        // If is_used is true, don't show any message
+      } else {
+        // User has made a purchase but no voucher record exists yet
+        // This might be a timing issue - don't show message
+        message = '';
       }
-    };
-    fetchVoucherState();
-  }, [profile?.id]);
+      
+      setAnnouncementMessage(message);
+      setIsExpiring(expiring);
+      setExpiryDate(expiryDateStr);
+    } catch (error) {
+      console.error('Error fetching voucher state:', error);
+      setAnnouncementMessage('');
+    }
+  };
+  
+  fetchVoucherState();
+}, [profile?.id, t]);
 
   const handleProductPress = (product) => {
     const standardizedProduct = {
       id: product.id,
       image_url: product.image_url,
-      description: product.description || 'No description available',
+      description: product.description || t('NoDescription'),
       price: product.price,
       sale_percentage: product.sale_percentage || null,
     };
@@ -657,27 +647,21 @@ const Profile = () => {
   const handleToReceivePress = () => {
     navigate('/Orders');
   };
-
   const handleToReviewPress = () => {
     navigate('/ToReview');
   };
-
   const handleFailedPress = () => {
     navigate('/FailedOrders');
   };
-
   const handleSeeAllNewItems = () => {
     navigate('/ProductList?section=new-items');
   };
-
   const handleSeeAllMostPopular = () => {
     navigate('/ProductList?section=most-popular');
   };
-
   const handleSeeAllCategories = () => {
     navigate('/CategoriesList');
   };
-
   const handleVoucherPress = () => {
     navigate('/Vouchers');
   };
@@ -688,15 +672,15 @@ const Profile = () => {
         profile={profile}
         customContent={
           <OrderButton onClick={() => console.log('My Activity Pressed!')}>
-            My Activity
+            {t('MyActivity')}
           </OrderButton>
         }
       />
       <Container>
         <Greeting>
-          <GreetingText>Hello, {profile?.first_name || 'User'}!</GreetingText>
+          <GreetingText>{t('Hello')}, {profile?.first_name || t('User')}!</GreetingText>
         </Greeting>
-        
+
         {announcementMessage && (
           <AnnouncementContainer $isExpiring={isExpiring}>
             <AnnouncementHeader>
@@ -704,7 +688,7 @@ const Profile = () => {
                 {isExpiring ? <IoTime /> : <IoGift />}
               </AnnouncementIconWrapper>
               <AnnouncementTitle $isExpiring={isExpiring}>
-                {isExpiring ? 'Urgent Reminder' : 'Special Offer'}
+                {isExpiring ? t('UrgentReminder') : t('SpecialOffer')}
               </AnnouncementTitle>
             </AnnouncementHeader>
             <AnnouncementBody>
@@ -715,30 +699,30 @@ const Profile = () => {
                 {isExpiring && expiryDate && (
                   <AnnouncementSubtext $isExpiring={isExpiring}>
                     <IoTime />
-                    Expires on {expiryDate}
+                    {t('ExpiresOn', { date: expiryDate })}
                   </AnnouncementSubtext>
                 )}
                 {!isExpiring && (
                   <AnnouncementSubtext>
                     <IoTicket />
-                    Claim your special discount now
+                    {t('ClaimYourSpecialDiscount')}
                   </AnnouncementSubtext>
                 )}
               </AnnouncementTextWrapper>
               <ActionButton $isExpiring={isExpiring} onClick={handleVoucherPress}>
-                {isExpiring ? 'Use Now' : 'Claim Now'}
+                {isExpiring ? t('UseNow') : t('ClaimNow')}
                 <IoArrowForward />
               </ActionButton>
             </AnnouncementBody>
           </AnnouncementContainer>
         )}
-        
+
         <Greeting>
-          <SectionTitle>Recently Viewed</SectionTitle>
+          <SectionTitle>{t('RecentlyViewed')}</SectionTitle>
         </Greeting>
         <RecentlyViewedContainer>
           {recentlyViewed.length === 0 ? (
-            <NoItemsText>No recently viewed items</NoItemsText>
+            <NoItemsText>{t('NoRecentlyViewedItems')}</NoItemsText>
           ) : (
             recentlyViewed.map((item) => (
               <TopProductCard key={item.id} onClick={() => handleProductPress(item)}>
@@ -747,9 +731,9 @@ const Profile = () => {
             ))
           )}
         </RecentlyViewedContainer>
-        
+
         <Greeting>
-          <SectionTitle>My Orders</SectionTitle>
+          <SectionTitle>{t('MyOrders')}</SectionTitle>
         </Greeting>
         <OrdersGrid>
           <OrderCard $color="#FF4D4F" onClick={handleFailedPress}>
@@ -758,8 +742,8 @@ const Profile = () => {
               {hasFailedOrder && <Badge $bgColor="#FF4D4F">{failedCount}</Badge>}
             </IconWrapper>
             <OrderInfo>
-              <OrderTitle>Failed</OrderTitle>
-              <OrderSubtitle>Orders with issues</OrderSubtitle>
+              <OrderTitle>{t('Failed')}</OrderTitle>
+              <OrderSubtitle>{t('FailedOrders')}</OrderSubtitle>
             </OrderInfo>
           </OrderCard>
           <OrderCard $color="#00BC7D" onClick={handleToReceivePress}>
@@ -768,8 +752,8 @@ const Profile = () => {
               {hasProcessingOrder && <Badge $bgColor="#00BC7D">{processingCount}</Badge>}
             </IconWrapper>
             <OrderInfo>
-              <OrderTitle>To Receive</OrderTitle>
-              <OrderSubtitle>Orders in transit</OrderSubtitle>
+              <OrderTitle>{t('ToReceive')}</OrderTitle>
+              <OrderSubtitle>{t('ToReceive')}</OrderSubtitle>
             </OrderInfo>
           </OrderCard>
           <OrderCard $color="#FFA940" onClick={handleToReviewPress}>
@@ -778,42 +762,42 @@ const Profile = () => {
               {hasItemsToReview && <Badge $bgColor="#FFA940">{toReviewCount}</Badge>}
             </IconWrapper>
             <OrderInfo>
-              <OrderTitle>To Review</OrderTitle>
-              <OrderSubtitle>Share your feedback</OrderSubtitle>
+              <OrderTitle>{t('ToReview')}</OrderTitle>
+              <OrderSubtitle>{t('ToReview')}</OrderSubtitle>
             </OrderInfo>
           </OrderCard>
         </OrdersGrid>
-        
+
         <TitleWithAction
-          title="New Items"
+          title={t('NewItems')}
           showClock={false}
           onPress={handleSeeAllNewItems}
         />
         <ItemsList grid={false} onPress={handleProductPress} />
-        
+
         <TitleWithAction
-          title="Most Popular"
+          title={t('MostPopular')}
           showClock={false}
           onPress={handleSeeAllMostPopular}
         />
         <MostPopular />
-        
+
         <TitleWithAction
-          title="Categories"
+          title={t('Categories')}
           showClock={false}
           onPress={handleSeeAllCategories}
         />
         <GridItems limit={4} />
-        
+
         <Greeting>
-          <SectionTitle>Top Products</SectionTitle>
+          <SectionTitle>{t('TopProducts')}</SectionTitle>
         </Greeting>
         {loadingTopProducts ? (
           <Loader><Spinner /></Loader>
         ) : (
           <RecentlyViewedContainer>
             {topProducts.length === 0 ? (
-              <NoItemsText>No top products available</NoItemsText>
+              <NoItemsText>{t('NoTopProductsAvailable')}</NoItemsText>
             ) : (
               topProducts.map((item) => (
                 <TopProductCard key={item.id} onClick={() => handleProductPress(item)}>
@@ -823,10 +807,10 @@ const Profile = () => {
             )}
           </RecentlyViewedContainer>
         )}
-        
+
         <Greeting>
           <IconTextContainer>
-            <SectionTitle>Just For You</SectionTitle>
+            <SectionTitle>{t('JustForYou')}</SectionTitle>
             <StarIcon />
           </IconTextContainer>
         </Greeting>

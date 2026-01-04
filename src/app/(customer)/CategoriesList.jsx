@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 import ShopHeader from '../../components/ShopHeader';
 import TitleWithAction from '../../components/TitleWithAction';
 import { supabase } from '../../lib/supabase';
@@ -53,11 +55,11 @@ const ProductCard = styled.div`
   width: 180px;
   cursor: pointer;
   transition: transform 0.2s ease;
-  
+
   &:hover {
     transform: translateY(-4px);
   }
-  
+
   &:active {
     transform: translateY(-2px);
   }
@@ -134,6 +136,8 @@ const LoadingText = styled.p`
 const CategoriesList = () => {
   const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
+  const { formatCurrency } = useCurrency();
+  const { t } = useTranslation();
   const [categoriesWithProducts, setCategoriesWithProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -146,13 +150,8 @@ const CategoriesList = () => {
           .select('id, name')
           .order('id', { ascending: true });
 
-        if (categoriesError) {
-          console.error('Error fetching categories:', categoriesError);
-          throw categoriesError;
-        }
-
+        if (categoriesError) throw categoriesError;
         if (!categoriesData || categoriesData.length === 0) {
-          console.log('No categories found');
           setCategoriesWithProducts([]);
           setLoading(false);
           return;
@@ -160,42 +159,60 @@ const CategoriesList = () => {
 
         const categoriesWithProductsData = await Promise.all(
           categoriesData.map(async (category) => {
-            try {
-              const { data: productsData, error: productsError } = await supabase
-                .from('products')
-                .select(`
-                  id, name, description, price, image_url,
-                  flash_sale_products (discount_percentage, flash_sale_id, flash_sales (start_time, end_time))
-                `)
-                .eq('category_id', category.id)
-                .order('created_at', { ascending: false })
-                .limit(10);
+            const { data: productsData, error: productsError } = await supabase
+              .from('products')
+              .select(`
+                id, name, description, price, image_url,
+                flash_sale_products (discount_percentage, flash_sale_id, flash_sales (start_time, end_time))
+              `)
+              .eq('category_id', category.id)
+              .order('created_at', { ascending: false })
+              .limit(10);
 
-              if (productsError) {
-                console.error(`Error fetching products for category ${category.id}:`, productsError);
-                return { ...category, products: [] };
-              }
-
-              const currentTime = new Date().toISOString();
-              const enrichedProducts = (productsData || []).map(product => {
-                const activeFlashSale = product.flash_sale_products?.find(fsp => {
-                  const sale = fsp.flash_sales;
-                  return sale && sale.start_time <= currentTime && sale.end_time >= currentTime;
-                });
-                return {
-                  ...product,
-                  sale_percentage: activeFlashSale ? activeFlashSale.discount_percentage : null,
-                };
-              });
-
-              return {
+            if (productsError) {
+              console.error(`Error fetching products for ${category.id}:`, productsError);
+              return { 
                 ...category,
-                products: enrichedProducts,
+                name: t(`Category_${category.id}`) || category.name,
+                originalName: category.name,
+                products: [] 
               };
-            } catch (error) {
-              console.error(`Error processing category ${category.id}:`, error);
-              return { ...category, products: [] };
             }
+
+            const currentTime = new Date().toISOString();
+            const enrichedProducts = (productsData || []).map(product => {
+              const activeFlashSale = product.flash_sale_products?.find(fsp => {
+                const sale = fsp.flash_sales;
+                return sale && sale.start_time <= currentTime && sale.end_time >= currentTime;
+              });
+              return {
+                ...product,
+                sale_percentage: activeFlashSale ? activeFlashSale.discount_percentage : null,
+              };
+            });
+
+            // Convert prices using formatCurrency
+            const productsWithConverted = await Promise.all(
+              enrichedProducts.map(async (p) => {
+                const displayPrice = await formatCurrency(p.price);
+                const hasDiscount = p.sale_percentage && p.sale_percentage > 0;
+                const discountedPrice = hasDiscount ? p.price * (1 - p.sale_percentage / 100) : null;
+                const displayDiscountedPrice = hasDiscount ? await formatCurrency(discountedPrice) : null;
+
+                return {
+                  ...p,
+                  displayPrice,
+                  displayDiscountedPrice,
+                };
+              })
+            );
+
+            return {
+              ...category,
+              name: t(`Category_${category.id}`) || category.name,
+              originalName: category.name,
+              products: productsWithConverted,
+            };
           })
         );
 
@@ -209,11 +226,7 @@ const CategoriesList = () => {
     };
 
     fetchCategoriesAndProducts();
-  }, []);
-
-  const formatPrice = (price) => {
-    return price.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  };
+  }, [formatCurrency, t]);
 
   const handleProductPress = (product) => {
     const standardizedProduct = {
@@ -221,23 +234,22 @@ const CategoriesList = () => {
       image_url: product.image_url || '',
       description: product.description || 'No description available',
       price: product.price || 0,
+      displayPrice: product.displayPrice,
       sale_percentage: product.sale_percentage || null,
     };
     navigate(`/ProductsView?product=${encodeURIComponent(JSON.stringify(standardizedProduct))}`);
   };
 
   const handleSeeAll = (category) => {
-    navigate(`/ItemsCategory?itemName=${encodeURIComponent(category.name)}`);
+    navigate(`/ItemsCategory?itemName=${encodeURIComponent(category.originalName)}`);
   };
 
   const getUserName = () => {
-    if (profile?.first_name && profile?.last_name) {
-      return `${profile.first_name} ${profile.last_name}`;
-    }
+    if (profile?.first_name && profile?.last_name) return `${profile.first_name} ${profile.last_name}`;
     if (profile?.first_name) return profile.first_name;
     if (profile?.email) return profile.email.split('@')[0];
     if (user?.email) return user.email.split('@')[0];
-    return 'User';
+    return t('UserName') || 'User';
   };
 
   if (loading) {
@@ -252,7 +264,7 @@ const CategoriesList = () => {
           onLogout={logout}
         />
         <LoadingContainer>
-          <LoadingText>Loading categories...</LoadingText>
+          <LoadingText>{t('LoadingCategories') || 'Loading categories'}...</LoadingText>
         </LoadingContainer>
       </PageContainer>
     );
@@ -270,11 +282,11 @@ const CategoriesList = () => {
       />
       <Container>
         <HeaderSection>
-          <PageTitle>All Categories</PageTitle>
+          <PageTitle>{t('AllCategories') || 'All Categories'}</PageTitle>
         </HeaderSection>
 
         {categoriesWithProducts.length === 0 ? (
-          <NoCategoriesText>No categories available</NoCategoriesText>
+          <NoCategoriesText>{t('NoCategoriesAvailable') || 'No categories available'}</NoCategoriesText>
         ) : (
           categoriesWithProducts.map((category) => (
             <CategorySection key={category.id}>
@@ -287,10 +299,6 @@ const CategoriesList = () => {
                 <ProductsContainer>
                   {category.products.map((product) => {
                     const hasDiscount = product.sale_percentage && product.sale_percentage > 0;
-                    const discountedPrice = hasDiscount 
-                      ? product.price * (1 - product.sale_percentage / 100) 
-                      : null;
-
                     return (
                       <ProductCard key={product.id} onClick={() => handleProductPress(product)}>
                         <ImageContainer>
@@ -298,14 +306,14 @@ const CategoriesList = () => {
                         </ImageContainer>
                         <ProductDescription>{product.description}</ProductDescription>
                         <ProductPrice>
-                          {formatPrice(hasDiscount ? discountedPrice : product.price)}
+                          {hasDiscount ? product.displayDiscountedPrice : product.displayPrice}
                         </ProductPrice>
                       </ProductCard>
                     );
                   })}
                 </ProductsContainer>
               ) : (
-                <NoProductsText>No products available in this category</NoProductsText>
+                <NoProductsText>{t('NoProductsAvailableInCategory') || 'No products available in this category'}</NoProductsText>
               )}
             </CategorySection>
           ))

@@ -7,6 +7,7 @@ import axios from 'axios';
 import ProfileHeader from '../../components/ProfileHeader';
 import juliaLogo2 from '../../assets/images/julialogo2.png';
 import juliaBlack from '../../assets/images/juliablack.png';
+import { useTranslation } from 'react-i18next';
 
 // Styled Components
 const PageContainer = styled.div`
@@ -707,26 +708,10 @@ const QUERY_API_URL = '/api/query';
 const WEBSOCKET_URL = 'ws://84.54.23.242:9000/cable';
 
 // Constants
-const faqs = [
-  {
-    topic: 'Order Issues',
-    query: 'order issues',
-    subFaqs: [
-      { topic: "Didn't Receive Parcel", query: "didn't receive parcel" },
-      { topic: 'Cancel Order', query: 'cancel order' },
-      { topic: 'Return Order', query: 'return order' },
-      { topic: 'Damaged Package', query: 'damaged package' },
-      { topic: 'Other Order Issue', query: 'other order issue' },
-    ],
-  },
-  { topic: 'Item Quality', query: 'item quality' },
-  { topic: 'Payment Issues', query: 'payment issues' },
-  { topic: 'Technical Assistance', query: 'technical assistance' },
-  { topic: 'Other', query: 'other' },
-];
 
 const SupportChat = () => {
   const { profile } = useAuth();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -749,6 +734,25 @@ const SupportChat = () => {
   const pollInterval = useRef(null);
   const messagesEndRef = useRef(null);
 
+  const faqs = [
+  {
+    topic: t('orderIssues'),
+    query: 'order issues',
+    subFaqs: [
+      { topic: t('didntReceiveParcel'), query: "didn't receive parcel" },
+      { topic: t('cancelOrder'), query: 'cancel order' },
+      { topic: t('returnOrder'), query: 'return order' },
+      { topic: t('damagedPackage'), query: 'damaged package' },
+      { topic: t('otherOrderIssue'), query: 'other order issue' },
+    ],
+  },
+  { topic: t('itemQuality'), query: 'item quality' },
+  { topic: t('paymentIssues'), query: 'payment issues' },
+  { topic: t('technicalAssistance'), query: 'technical assistance' },
+  { topic: t('other'), query: 'other' },
+];
+
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -761,7 +765,7 @@ const SupportChat = () => {
     if (!isAgentMode && !ticketMode) {
       const greetingMessage = {
         id: Date.now().toString(),
-        text: 'Hello! How can I help you today?',
+        text: t('greetingMessage'),
         isUser: false,
         created_at: new Date().toISOString(),
       };
@@ -961,7 +965,7 @@ const SupportChat = () => {
         ...prev,
         {
           id: Date.now().toString(),
-          text: 'Failed to load orders. Please try again.',
+          text: t('failedToLoadOrders'),
           isUser: false,
           created_at: new Date().toISOString(),
         },
@@ -1014,7 +1018,7 @@ const SupportChat = () => {
     } catch (error) {
       const errorMessage = {
         id: (Date.now() + 1).toString(),
-        text: 'Sorry, we couldn\'t process your request. Please try again later.',
+        text: t('failedToSendMessage'),
         isUser: false,
         created_at: new Date().toISOString(),
       };
@@ -1026,28 +1030,28 @@ const SupportChat = () => {
     }
   };
 
-  const handleFaqClick = (faq) => {
-    if (isAgentMode) return;
+const handleFaqClick = (faq) => {
+  if (isAgentMode) return;
 
-    if (faq.subFaqs) {
-      setSelectedFaq(faq.topic);
-      setSelectedSubFaq(null);
-    } else if (faq.topic !== 'Other') {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          text: faq.topic,
-          isUser: true,
-          isFaq: true,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-      sendQuery(faq.query);
-    } else {
-      handleClose();
-    }
-  };
+  if (faq.subFaqs) {
+    setSelectedFaq(faq.topic);
+    setSelectedSubFaq(null);
+  } else if (faq.topic !== t('other')) {  // CHANGE THIS LINE
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        text: faq.topic,
+        isUser: true,
+        isFaq: true,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    sendQuery(faq.query);
+  } else {
+    handleClose();
+  }
+};
 
   const handleSubFaqClick = (subFaq) => {
     if (isAgentMode) return;
@@ -1173,7 +1177,7 @@ const SupportChat = () => {
     setMessages((prev) => [
       ...prev,
       userMessage,
-      { id: (Date.now() + 1).toString(), text: 'Looking for an agent...', isUser: false, isLoading: true, created_at: new Date().toISOString() },
+      { id: (Date.now() + 1).toString(), text: t('lookingForAgent'), isUser: false, isLoading: true, created_at: new Date().toISOString() },
     ]);
 
     try {
@@ -1199,7 +1203,7 @@ const SupportChat = () => {
         ...prev,
         {
           id: (Date.now() + 1).toString(),
-          text: 'Failed to send message to agent. Please try again.',
+          text: t('failedToSendMessage'),
           isUser: false,
           created_at: new Date().toISOString(),
         },
@@ -1233,14 +1237,14 @@ const SupportChat = () => {
     } catch (error) {
       console.error('Error sending message to agent:', error.response?.data || error.message);
       setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          text: 'Failed to send message to agent. Please try again.',
-          isUser: false,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+  ...prev,
+  {
+    id: (Date.now() + 1).toString(),
+    text: t('failedToSendMessage'),  // CHANGE THIS LINE
+    isUser: false,
+    created_at: new Date().toISOString(),
+  },
+]);
       setButtonVisibility((prev) => ({ ...prev, [(Date.now() + 1).toString()]: true }));
     } finally {
       setLoading(false);
@@ -1295,7 +1299,7 @@ const SupportChat = () => {
         ...prev,
         {
           id: (Date.now() + 1).toString(),
-          text: 'Ticket submitted successfully!',
+          text: t('ticketSubmitted'),
           isUser: false,
           created_at: new Date().toISOString(),
         },
@@ -1306,7 +1310,7 @@ const SupportChat = () => {
         ...prev,
         {
           id: (Date.now() + 1).toString(),
-          text: 'Failed to submit ticket. Please try again.',
+          text: t('failedToSubmitTicket'),
           isUser: false,
           created_at: new Date().toISOString(),
         },
@@ -1319,16 +1323,16 @@ const SupportChat = () => {
   };
 
   const handleReferToAgent = async (messageId) => {
-    setButtonVisibility((prev) => ({ ...prev, [messageId]: false }));
-    setShowFaqModal(false);
-    setMessages([
-      {
-        id: Date.now().toString(),
-        text: 'Please type your problem:',
-        isUser: false,
-        created_at: new Date().toISOString(),
-      },
-    ]);
+  setButtonVisibility((prev) => ({ ...prev, [messageId]: false }));
+  setShowFaqModal(false);
+  setMessages([
+    {
+      id: Date.now().toString(),
+      text: t('typeProblem'),  // CHANGE THIS LINE
+      isUser: false,
+      created_at: new Date().toISOString(),
+    },
+  ]);
 
     try {
       if (ws.current) {
@@ -1370,7 +1374,7 @@ const SupportChat = () => {
         ...prev,
         {
           id: Date.now().toString(),
-          text: 'Failed to connect to agent. Please try again.',
+          text: t('failedToConnectAgent'),
           isUser: false,
           created_at: new Date().toISOString(),
         },
@@ -1381,20 +1385,19 @@ const SupportChat = () => {
     }
   };
 
-  const handleSubmitTicket = (messageId) => {
-    setButtonVisibility((prev) => ({ ...prev, [messageId]: false }));
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        text: 'Please type your problem:',
-        isUser: false,
-        created_at: new Date().toISOString(),
-      },
-    ]);
-    setTicketMode(true);
-  };
-
+ const handleSubmitTicket = (messageId) => {
+  setButtonVisibility((prev) => ({ ...prev, [messageId]: false }));
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: Date.now().toString(),
+      text: t('typeProblem'),  // CHANGE THIS LINE
+      isUser: false,
+      created_at: new Date().toISOString(),
+    },
+  ]);
+  setTicketMode(true);
+};
   const handleAskAnotherQuestion = (messageId) => {
     setButtonVisibility((prev) => ({ ...prev, [messageId]: false }));
     setIsAgentMode(false);
@@ -1530,18 +1533,18 @@ const SupportChat = () => {
             {message.isLoading && <LoadingIndicator />}
           </Message>
           {!ticketMode && !isAgentMode && buttonVisibility[message.id] && (
-            <ButtonContainer>
-              <ActionButton onClick={() => handleReferToAgent(message.id)} disabled={loading}>
-                Refer to Agent
-              </ActionButton>
-              <ActionButton onClick={() => handleSubmitTicket(message.id)} disabled={loading}>
-                Submit Ticket
-              </ActionButton>
-              <ActionButton onClick={() => handleAskAnotherQuestion(message.id)} disabled={loading}>
-                Ask Another Question
-              </ActionButton>
-            </ButtonContainer>
-          )}
+  <ButtonContainer>
+    <ActionButton onClick={() => handleReferToAgent(message.id)} disabled={loading}>
+      {t('referToAgent')}
+    </ActionButton>
+    <ActionButton onClick={() => handleSubmitTicket(message.id)} disabled={loading}>
+      {t('submitTicket')}
+    </ActionButton>
+    <ActionButton onClick={() => handleAskAnotherQuestion(message.id)} disabled={loading}>
+      {t('askAnotherQuestion')}
+    </ActionButton>
+  </ButtonContainer>
+)}
         </div>
       </MessageWrapper>
     );
@@ -1571,10 +1574,10 @@ const SupportChat = () => {
         <ImagesContainer>{renderOrderImages(order.items)}</ImagesContainer>
         <OrderDetails>
           <OrderHeader>
-            <OrderId>Order #{order.id}</OrderId>
-            <ItemsCount>{order.items.length} items</ItemsCount>
+            <OrderId>{t('orderId', { id: order.id })}</OrderId> 
+            <ItemsCount>{t('itemsCount', { count: order.items.length })}</ItemsCount>
           </OrderHeader>
-          <ShippingOption>{shippingOptionName} Delivery</ShippingOption>
+          <ShippingOption>{shippingOptionName} {t('Delivery')}</ShippingOption> 
           <StatusRow>
             <StatusContainer>
               <StatusText $delivered={isDelivered}>{order.delivery_status}</StatusText>
@@ -1595,7 +1598,7 @@ const SupportChat = () => {
                   </CheckmarkInner>
                 </CheckmarkCircle>
               )}
-              <span>{isSelected ? 'Selected' : 'Select'}</span>
+              <span>{isSelected ? t('selected') : t('select')}</span>
             </FaqButton>
           </StatusRow>
         </OrderDetails>
@@ -1620,7 +1623,7 @@ const SupportChat = () => {
 
           <MessagesContainer>
             {messages.length === 0 ? (
-              <EmptyState>Start a conversation...</EmptyState>
+              <EmptyState>{t('startConversation')}</EmptyState>
             ) : (
               messages.map(renderMessage)
             )}
@@ -1634,10 +1637,10 @@ const SupportChat = () => {
               onKeyPress={(e) => e.key === 'Enter' && handleCustomQuery()}
               placeholder={
                 awaitingUserProblem
-                  ? 'Please type your problem...'
+                  ? t('typeProblem')
                   : isAgentMode
-                  ? 'Message agent...'
-                  : 'Type a message...'
+                  ? t('messageAgent')
+                  : t('typeMessage')
               }
               disabled={awaitingUserProblem ? false : loading}
             />
@@ -1653,17 +1656,17 @@ const SupportChat = () => {
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
               <ModalTitle>
-                {selectedSubFaq ? selectedSubFaq : selectedFaq ? selectedFaq : 'How can we help you?'}
+                {selectedSubFaq ? selectedSubFaq : selectedFaq ? selectedFaq : t('modalTitleNoFaq')}
               </ModalTitle>
             </ModalHeader>
             <ModalBody>
               {selectedSubFaq ? (
                 ordersLoading ? (
-                  <LoadingText>Loading orders...</LoadingText>
+                  <LoadingText>{t('loadingOrders')}</LoadingText>
                 ) : orders.length > 0 ? (
                   orders.map(renderOrderItem)
                 ) : (
-                  <EmptyState>No pending orders</EmptyState>
+                  <EmptyState>{t('noPendingOrders')}</EmptyState>
                 )
               ) : selectedFaq && faqs.find((f) => f.topic === selectedFaq)?.subFaqs ? (
                 faqs.find((f) => f.topic === selectedFaq).subFaqs.map((subFaq) => (

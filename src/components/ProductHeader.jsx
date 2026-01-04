@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import { IoTrash, IoPencil, IoHeart, IoHeartOutline, IoChevronBack, IoChevronForward, IoCartOutline, IoFlashOutline } from 'react-icons/io5';
 import { FaCheck } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 
 const ProductHeaderContainer = styled.div`
   background: white;
@@ -12,46 +12,38 @@ const ProductHeaderContainer = styled.div`
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   border: 1px solid #e8eaed;
   transition: all 0.3s ease;
-
   &:hover {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   }
 `;
-
 const ImageSection = styled.div`
   position: relative;
   background: #f8f9fa;
 `;
-
 const SliderWrapper = styled.div`
   position: relative;
   aspect-ratio: 16 / 10;
   overflow: hidden;
   cursor: pointer;
-
   @media (max-width: 768px) {
     aspect-ratio: 4 / 3;
   }
 `;
-
 const SliderTrack = styled.div`
   display: flex;
   height: 100%;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 `;
-
 const ImageSlide = styled.div`
   flex: 0 0 100%;
   height: 100%;
 `;
-
 const MainProductImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 `;
-
 const NavigationArrows = styled.div`
   position: absolute;
   top: 50%;
@@ -61,12 +53,10 @@ const NavigationArrows = styled.div`
   justify-content: space-between;
   padding: 0 16px;
   pointer-events: none;
-
   @media (max-width: 768px) {
     display: none;
   }
 `;
-
 const ArrowButton = styled.button`
   pointer-events: all;
   background: rgba(255, 255, 255, 0.95);
@@ -81,18 +71,15 @@ const ArrowButton = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
   &:hover {
     background: white;
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
   }
-
   &:active {
     transform: scale(0.95);
   }
 `;
-
 const ActionButtons = styled.div`
   position: absolute;
   top: 20px;
@@ -100,13 +87,11 @@ const ActionButtons = styled.div`
   display: flex;
   gap: 10px;
   z-index: 10;
-
   @media (max-width: 768px) {
     top: 12px;
     right: 12px;
   }
 `;
-
 const ActionButton = styled.button`
   width: 48px;
   height: 48px;
@@ -120,23 +105,19 @@ const ActionButton = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
   &:hover {
     transform: scale(1.1);
     background: white;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
   }
-
   &:active {
     transform: scale(0.95);
   }
-
   @media (max-width: 768px) {
     width: 40px;
     height: 40px;
   }
 `;
-
 const ImagePagination = styled.div`
   position: absolute;
   bottom: 20px;
@@ -148,12 +129,10 @@ const ImagePagination = styled.div`
   padding: 8px 16px;
   border-radius: 20px;
   backdrop-filter: blur(10px);
-
   @media (min-width: 769px) {
     display: none;
   }
 `;
-
 const PaginationDot = styled.div`
   width: ${props => (props.active ? '24px' : '8px')};
   height: 8px;
@@ -161,20 +140,16 @@ const PaginationDot = styled.div`
   background: ${props => (props.active ? '#ffffff' : 'rgba(255, 255, 255, 0.5)')};
   transition: all 0.3s ease;
   cursor: pointer;
-
   &:hover {
     background: rgba(255, 255, 255, 0.8);
   }
 `;
-
 const ContentSection = styled.div`
   padding: 32px;
-
   @media (max-width: 768px) {
     padding: 24px;
   }
 `;
-
 const VariationSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -183,7 +158,6 @@ const VariationSection = styled.div`
   border-bottom: 2px solid #f0f2f5;
   margin-bottom: 24px;
 `;
-
 const VariationTitle = styled.h4`
   font-size: 18px;
   font-weight: 700;
@@ -192,13 +166,11 @@ const VariationTitle = styled.h4`
   margin: 0;
   letter-spacing: -0.3px;
 `;
-
 const ColorSwatches = styled.div`
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
 `;
-
 const ColorSwatch = styled.div`
   width: 44px;
   height: 44px;
@@ -208,19 +180,16 @@ const ColorSwatch = styled.div`
   background-color: ${props => props.color || '#ccc'};
   transition: all 0.3s ease;
   position: relative;
-
   &:hover {
     transform: translateY(-2px);
     border-color: #00BC7D;
     box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
   }
-
   @media (max-width: 768px) {
     width: 40px;
     height: 40px;
   }
 `;
-
 const Checkmark = styled.div`
   position: absolute;
   top: -6px;
@@ -236,21 +205,18 @@ const Checkmark = styled.div`
   font-size: 10px;
   box-shadow: 0 2px 8px rgba(0, 188, 125, 0.4);
 `;
-
 const ActionsSection = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
-
 const PrimaryButton = styled.button`
   padding: 18px 24px;
-  background: ${props => props.primary 
-    ? 'linear-gradient(135deg, #00BC7D 0%, #00A66A 100%)' 
+  background: ${props => props.primary
+    ? 'linear-gradient(135deg, #00BC7D 0%, #00A66A 100%)'
     : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'};
   color: white;
   border: none;
@@ -265,18 +231,15 @@ const PrimaryButton = styled.button`
   justify-content: center;
   gap: 10px;
   letter-spacing: 0.3px;
-
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px ${props => props.primary 
-      ? 'rgba(0, 188, 125, 0.4)' 
+    box-shadow: 0 8px 24px ${props => props.primary
+      ? 'rgba(0, 188, 125, 0.4)'
       : 'rgba(26, 26, 46, 0.4)'};
   }
-
   &:active {
     transform: translateY(0);
   }
-
   @media (max-width: 768px) {
     padding: 16px 20px;
     font-size: 15px;
@@ -285,16 +248,19 @@ const PrimaryButton = styled.button`
 
 const ProductHeader = ({
   productData,
-  variations,
+  variations = [],
   selectedVariationId,
   profile,
   isVendorView = false,
-  isLiked,
-  onLikePress,
-  onSelectVariation,
-  onAddToCart,
-  onBuyNow,
+  isLiked = false,
+  onLikePress = () => {},
+  onSelectVariation = () => {},
+  onAddToCart = () => {},
+  onBuyNow = () => {},
+  onDeleteProduct = () => {},
+  onEditProduct = () => {},
 }) => {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const sliderRef = useRef(null);
   const navigate = useNavigate();
@@ -307,8 +273,8 @@ const ProductHeader = ({
     }))
     .filter(image => image.uri);
 
-  const fallbackImage = images.length === 0 
-    ? [{ id: 'main', uri: productData.image_url, variationId: null }] 
+  const fallbackImage = images.length === 0
+    ? [{ id: 'main', uri: productData.image_url, variationId: null }]
     : images;
 
   const totalImages = fallbackImage.length;
@@ -362,35 +328,6 @@ const ProductHeader = ({
     onSelectVariation(variation.id);
   };
 
-  const handleEditProduct = () => {
-    navigate({
-      pathname: '/EditProduct',
-      search: `?product=${encodeURIComponent(JSON.stringify(productData))}`,
-    });
-  };
-
-  const handleDeleteProduct = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${productData.description}"? This action cannot be undone.`
-    );
-    if (confirmed) {
-      try {
-        const { error } = await supabase
-          .from('products')
-          .delete()
-          .eq('id', productData.id)
-          .eq('vendor_id', profile.id);
-
-        if (error) throw error;
-        window.alert('Product deleted successfully.');
-        navigate('/Inventory');
-      } catch (error) {
-        console.error('Error deleting product:', error);
-        window.alert('Failed to delete product.');
-      }
-    }
-  };
-
   const isVendor = profile?.id === productData.vendor_id;
 
   return (
@@ -404,7 +341,6 @@ const ProductHeader = ({
               </ImageSlide>
             ))}
           </SliderTrack>
-
           {totalImages > 1 && (
             <>
               <NavigationArrows>
@@ -415,7 +351,6 @@ const ProductHeader = ({
                   <IoChevronForward size={24} />
                 </ArrowButton>
               </NavigationArrows>
-
               <ImagePagination>
                 {fallbackImage.map((_, index) => (
                   <PaginationDot
@@ -427,21 +362,22 @@ const ProductHeader = ({
               </ImagePagination>
             </>
           )}
-
           <ActionButtons>
-            <ActionButton onClick={onLikePress}>
-              {isLiked ? (
-                <IoHeart size={24} color="#f5576c" />
-              ) : (
-                <IoHeartOutline size={24} color="#1a1a2e" />
-              )}
-            </ActionButton>
-            {isVendor && isVendorView && (
+            {!isVendorView && (
+              <ActionButton onClick={onLikePress}>
+                {isLiked ? (
+                  <IoHeart size={24} color="#f5576c" />
+                ) : (
+                  <IoHeartOutline size={24} color="#1a1a2e" />
+                )}
+              </ActionButton>
+            )}
+            {isVendorView && isVendor && (
               <>
-                <ActionButton onClick={handleDeleteProduct}>
+                <ActionButton onClick={onDeleteProduct}>
                   <IoTrash size={20} color="#D97474" />
                 </ActionButton>
-                <ActionButton onClick={handleEditProduct}>
+                <ActionButton onClick={onEditProduct}>
                   <IoPencil size={18} color="#00BC7D" />
                 </ActionButton>
               </>
@@ -449,11 +385,11 @@ const ProductHeader = ({
           </ActionButtons>
         </SliderWrapper>
       </ImageSection>
-
+    
       <ContentSection>
         {uniqueColorVariations.length > 0 && (
           <VariationSection>
-            <VariationTitle>Available Colors</VariationTitle>
+            <VariationTitle>{t('AvailableColors')}</VariationTitle>
             <ColorSwatches>
               {uniqueColorVariations.map((item) => (
                 <ColorSwatch
@@ -472,17 +408,19 @@ const ProductHeader = ({
             </ColorSwatches>
           </VariationSection>
         )}
-
-        <ActionsSection>
-          <PrimaryButton onClick={onAddToCart}>
-            <IoCartOutline size={22} />
-            Add to Cart
-          </PrimaryButton>
-          <PrimaryButton primary onClick={onBuyNow}>
-            <IoFlashOutline size={22} />
-            Buy Now
-          </PrimaryButton>
-        </ActionsSection>
+      
+        {!isVendorView && (
+          <ActionsSection>
+            <PrimaryButton onClick={onAddToCart}>
+              <IoCartOutline size={22} />
+              {t('AddToCart')}
+            </PrimaryButton>
+            <PrimaryButton primary onClick={onBuyNow}>
+              <IoFlashOutline size={22} />
+              {t('BuyNow')}
+            </PrimaryButton>
+          </ActionsSection>
+        )}
       </ContentSection>
     </ProductHeaderContainer>
   );

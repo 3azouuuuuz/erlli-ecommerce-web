@@ -3,6 +3,8 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { IoHeart } from 'react-icons/io5';
 import { supabase } from '../lib/supabase';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 
 const Container = styled.div`
   display: flex;
@@ -124,7 +126,7 @@ const NoItemsText = styled.div`
   width: 100%;
 `;
 
-const MostPopularItem = ({ item, onClick }) => {
+const MostPopularItem = ({ item, onClick, newText }) => {
   return (
     <ItemCard onClick={onClick}>
       <ImageContainer>
@@ -135,7 +137,7 @@ const MostPopularItem = ({ item, onClick }) => {
           <LikesText>{item.likes_count || 0}</LikesText>
           <HeartIcon />
         </LikesContainer>
-        <NewText>New</NewText>
+        <NewText>{newText}</NewText>
       </Label>
     </ItemCard>
   );
@@ -143,8 +145,10 @@ const MostPopularItem = ({ item, onClick }) => {
 
 const MostPopular = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [popularItems, setPopularItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { formatCurrency } = useCurrency();
 
   useEffect(() => {
     const fetchMostPopularItems = async () => {
@@ -173,8 +177,19 @@ const MostPopular = () => {
           };
         });
 
-        console.log('Fetched Most Popular Items:', enrichedProducts);
-        setPopularItems(enrichedProducts);
+        // Convert prices
+        const productsWithConvertedPrices = await Promise.all(
+          enrichedProducts.map(async (product) => {
+            const displayPrice = await formatCurrency(product.price);
+            return {
+              ...product,
+              displayPrice
+            };
+          })
+        );
+
+        console.log('Fetched Most Popular Items:', productsWithConvertedPrices);
+        setPopularItems(productsWithConvertedPrices);
       } catch (error) {
         console.error('Error fetching most popular items:', error.message);
         setPopularItems([]);
@@ -184,7 +199,7 @@ const MostPopular = () => {
     };
 
     fetchMostPopularItems();
-  }, []);
+  }, [formatCurrency]);
 
   const handleItemPress = (item) => {
     const standardizedProduct = {
@@ -192,6 +207,7 @@ const MostPopular = () => {
       image_url: item.image_url,
       description: item.description || 'No description available',
       price: item.price,
+      displayPrice: item.displayPrice,
       sale_percentage: item.sale_percentage || null,
     };
     navigate(`/ProductsView?product=${encodeURIComponent(JSON.stringify(standardizedProduct))}`);
@@ -206,7 +222,7 @@ const MostPopular = () => {
   }
 
   if (popularItems.length === 0) {
-    return <NoItemsText>No popular items found</NoItemsText>;
+    return <NoItemsText>{t('NoPopularItemsFound') || 'No popular items found'}</NoItemsText>;
   }
 
   return (
@@ -216,6 +232,7 @@ const MostPopular = () => {
           key={item.id} 
           item={item} 
           onClick={() => handleItemPress(item)}
+          newText={t('New') || 'New'}
         />
       ))}
     </Container>

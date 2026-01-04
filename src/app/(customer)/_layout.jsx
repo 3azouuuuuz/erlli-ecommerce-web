@@ -10,6 +10,7 @@ import CategoriesList from './CategoriesList.jsx';
 import SearchResults from './SearchResults.jsx';
 import ProductList from './ProductList.jsx';
 import Profile from './Profile.jsx';
+import TrackingDetails from './TrackingDetails.jsx';
 import Settings from './Settings.jsx';
 import ProductsView from './ProductsView.jsx';
 import FlashSale from './FlashSale.jsx';
@@ -31,6 +32,7 @@ import ToReview from './ToReview.jsx';
 import CustomerOrderDetails from './CustomerOrderDetails.jsx';
 import SupportChat from './SupportChat.jsx';
 import StoreDetails from './StoreDetails.jsx';
+import CustomerMessages from './CustomerMessages.jsx';
 
 // Styled Components
 const FloatingCartButton = styled.button`
@@ -113,6 +115,7 @@ const CartButtonWrapper = () => {
 function CustomerLayout() {
   const location = useLocation();
   const isSupportChat = location.pathname.includes('SupportChat');
+  const isCustomerMessages = location.pathname.includes('CustomerMessages');
 
   return (
     <CartProvider>
@@ -134,17 +137,20 @@ function CustomerLayout() {
         <Route path="Lang" element={<Lang />} />
         <Route path="About" element={<About />} />
         <Route path="ProductsView" element={<ProductsView />} />
+        <Route path="customer/product/:productId" element={<ProductsView />} />
         <Route path="Vouchers" element={<Vouchers />} />
         <Route path="Payment" element={<Payment />} />
         <Route path="Orders" element={<Orders />} />
+        <Route path="/tracking-details" element={<TrackingDetails />} />
         <Route path="CustomerOrderDetails" element={<CustomerOrderDetails />} />
         <Route path="SupportChat" element={<SupportChat />} />
-        <Route path="StoreDetails" element={<StoreDetails />} />
+        <Route path="/store/:vendorId" element={<StoreDetails />} />
         <Route path="FailedOrders" element={<FailedOrders />} />
         <Route path="ToReview" element={<ToReview />} />
+        <Route path="customer/CustomerMessages" element={<CustomerMessages />} />
       </Routes>
       
-      {!isSupportChat && (
+      {!isSupportChat && !isCustomerMessages && (
         <>
           <CartDrawerComponent />
           <CartButtonWrapper />

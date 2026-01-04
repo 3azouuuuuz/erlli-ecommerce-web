@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import ProfileHeader from '../../components/ProfileHeader';
+import { useTranslation } from 'react-i18next';
 import { IoAlertCircle } from 'react-icons/io5';
 
 const PageContainer = styled.div`
@@ -12,9 +13,12 @@ const PageContainer = styled.div`
 `;
 
 const Container = styled.div`
-  padding: 0 16px 20px;
+  padding: 80px 16px 20px;
   max-width: 1200px;
   margin: 0 auto;
+  @media (max-width: 768px) {
+    padding-top: 100px;
+  }
 `;
 
 const HeaderContent = styled.div`
@@ -366,6 +370,7 @@ const CloseReasonButton = styled.button`
 const FailedOrders = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -448,7 +453,7 @@ const FailedOrders = () => {
     );
     const itemCount = item.items.length;
 
-    let shippingOptionName = 'Unknown';
+    let shippingOptionName = t('Unknown');
     let shippingOption = item.shipping_option;
 
     if (typeof shippingOption === 'string') {
@@ -489,32 +494,32 @@ const FailedOrders = () => {
           <ImagesContainer>
             {itemCount === 1 ? (
               <ImageContainer>
-                <SingleImage src={images[0]} alt="Product" />
+                <SingleImage src={images[0]} alt={t('Product')} />
               </ImageContainer>
             ) : itemCount === 2 ? (
               <ImageContainer>
                 <TwoImagesHorizontal>
-                  <HorizontalImage src={images[0]} alt="Product 1" />
-                  <HorizontalImage src={images[1]} alt="Product 2" />
+                  <HorizontalImage src={images[0]} alt={t('Product') + ' 1'} />
+                  <HorizontalImage src={images[1]} alt={t('Product') + ' 2'} />
                 </TwoImagesHorizontal>
               </ImageContainer>
             ) : itemCount === 3 ? (
               <ImageContainer>
                 <ThreeImagesLayout>
                   <TopRow>
-                    <TopImage src={images[0]} alt="Product 1" />
-                    <TopImage src={images[1]} alt="Product 2" />
+                    <TopImage src={images[0]} alt={t('Product') + ' 1'} />
+                    <TopImage src={images[1]} alt={t('Product') + ' 2'} />
                   </TopRow>
-                  <BottomImage src={images[2]} alt="Product 3" />
+                  <BottomImage src={images[2]} alt={t('Product') + ' 3'} />
                 </ThreeImagesLayout>
               </ImageContainer>
             ) : (
               <ImageContainer>
                 <FourImagesGrid>
-                  <GridImage src={images[0]} alt="Product 1" />
-                  <GridImage src={images[1]} alt="Product 2" />
-                  <GridImage src={images[2]} alt="Product 3" />
-                  <GridImage src={images[3]} alt="Product 4" />
+                  <GridImage src={images[0]} alt={t('Product') + ' 1'} />
+                  <GridImage src={images[1]} alt={t('Product') + ' 2'} />
+                  <GridImage src={images[2]} alt={t('Product') + ' 3'} />
+                  <GridImage src={images[3]} alt={t('Product') + ' 4'} />
                 </FourImagesGrid>
               </ImageContainer>
             )}
@@ -522,24 +527,24 @@ const FailedOrders = () => {
 
           <DetailsContainer>
             <OrderHeaderRow>
-              <OrderId>Order #{item.id}</OrderId>
+              <OrderId>{t('Order')} #{item.id}</OrderId>
               <ItemsCountContainer>
-                <ItemsCount>{item.items.length} items</ItemsCount>
+                <ItemsCount>{item.items.length} {t('items')}</ItemsCount>
               </ItemsCountContainer>
             </OrderHeaderRow>
 
-            <ShippingOption>{shippingOptionName} Delivery</ShippingOption>
+            <ShippingOption>{shippingOptionName} {t('Delivery')}</ShippingOption>
 
             <StatusAndButtonRow>
               <StatusContainer>
-                <StatusText>failed</StatusText>
+                <StatusText>{t('Failed')}</StatusText>
               </StatusContainer>
 
               <ReasonButton onClick={(e) => {
                 e.stopPropagation();
                 toggleReasonSection(item.id);
               }}>
-                {isExpanded ? 'Hide' : 'Reason'}
+                {isExpanded ? t('Hide') : t('Reason')}
               </ReasonButton>
             </StatusAndButtonRow>
           </DetailsContainer>
@@ -549,13 +554,13 @@ const FailedOrders = () => {
           <ReasonSection>
             <ReasonHeader>
               <AlertIcon />
-              <ReasonTitle>Reason for Failure</ReasonTitle>
+              <ReasonTitle>{t('ReasonForFailure')}</ReasonTitle>
             </ReasonHeader>
             <ReasonText>
-              {item.refund_reason || 'No reason provided'}
+              {item.refund_reason || t('NoReasonProvided')}
             </ReasonText>
             <CloseReasonButton onClick={() => toggleReasonSection(item.id)}>
-              Close
+              {t('Close')}
             </CloseReasonButton>
           </ReasonSection>
         )}
@@ -565,8 +570,8 @@ const FailedOrders = () => {
 
   const headerContent = (
     <HeaderContent>
-      <HeaderText>Failed Orders</HeaderText>
-      <HeaderText2>My Orders</HeaderText2>
+      <HeaderText>{t('FailedOrders')}</HeaderText>
+      <HeaderText2>{t('MyOrders')}</HeaderText2>
     </HeaderContent>
   );
 
@@ -584,7 +589,7 @@ const FailedOrders = () => {
       <Container>
         <OrdersList>
           {orders.length === 0 ? (
-            <NoItemsText>No failed orders found</NoItemsText>
+            <NoItemsText>{t('NoFailedOrdersFound')}</NoItemsText>
           ) : (
             orders.map(renderOrderItem)
           )}

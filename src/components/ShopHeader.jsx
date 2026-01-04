@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../contexts/ThemeContext';
 import iconx from '../assets/images/iconx.png';
+import { useTranslation } from 'react-i18next';
 
 // === Simple Public Image Component ===
 const ProfileImage = ({ src, alt, size = 48, ...props }) => {
@@ -631,7 +632,7 @@ const ShopHeader = ({
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { theme } = useTheme();
-  
+  const { t } = useTranslation();
   const [searchText, setSearchText] = useState('');
   const [searchTerms, setSearchTerms] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -816,7 +817,7 @@ const ShopHeader = ({
                 ))}
                 <InputWrapper>
                   <Input
-                    placeholder="Search products..."
+                    placeholder={t('PerformSearch') || 'Search products...'}
                     value={searchText}
                     onChange={setSearchText}
                     onFocus={() => setIsDropdownOpen(true)}
@@ -838,20 +839,20 @@ const ShopHeader = ({
           {isDropdownOpen && (
             <DropdownContainer ref={dropdownRef}>
               <SearchHistoryContainer>
-                <Label>Search History</Label>
-                <ClearHistoryButton onClick={clearHistory} aria-label="Clear Search History">
+                <Label>{t('SearchHistory') || 'Search History'}</Label>
+                <ClearHistoryButton onClick={clearHistory} aria-label={t('ClearSearchHistory') || 'Clear Search History'}>
                   <IoTrash style={{ fontSize: '18px', color: '#D97474' }} />
                 </ClearHistoryButton>
               </SearchHistoryContainer>
               <HistoryRow>
                 {searchHistory.length === 0 ? (
-                  <NoHistoryText>No search history</NoHistoryText>
+                  <NoHistoryText>{t('NoSearchHistory') || 'No search history'}</NoHistoryText>
                 ) : (
                   searchHistory.map((item, index) => (
                     <HistoryItem
                       key={index}
                       onClick={() => handleHistoryClick(item)}
-                      aria-label={`Search for ${item}`}
+                      aria-label={`${t('SearchFor') || 'Search for'} ${item}`}
                     >
                       <HistoryText>{item}</HistoryText>
                     </HistoryItem>
@@ -861,16 +862,16 @@ const ShopHeader = ({
 
               {searchText.trim() && (
                 <SuggestionsContainer>
-                  <Label>Suggestions</Label>
+                  <Label>{t('Suggestions') || 'Suggestions'}</Label>
                   <HistoryRow>
                     {suggestions.length === 0 ? (
-                      <NoHistoryText>No matching products</NoHistoryText>
+                      <NoHistoryText>{t('NoMatchingProducts') || 'No matching products'}</NoHistoryText>
                     ) : (
                       suggestions.map((item, index) => (
                         <SuggestionItem
                           key={index}
                           onClick={() => handleSuggestionClick(item)}
-                          aria-label={`Search for ${item}`}
+                          aria-label={`${t('SearchFor') || 'Search for'} ${item}`}
                         >
                           <SuggestionText>{item}</SuggestionText>
                         </SuggestionItem>
@@ -888,7 +889,7 @@ const ShopHeader = ({
             <ProfileImgContainer onClick={handleProfileClick} isOpen={isProfileDropdownOpen}>
               <ProfileImage
                 src={actualAvatarUrl}
-                alt="Profile Avatar"
+                alt={t('ProfileAvatar') || 'Profile Avatar'}
                 size={48}
               />
             </ProfileImgContainer>
@@ -898,35 +899,35 @@ const ShopHeader = ({
                 <ProfileDropdownHeader>
                   <ProfileName>{fullName}</ProfileName>
                   <ProfileEmail>{userEmail || 'user@example.com'}</ProfileEmail>
-                  <ProfileRole>{userRole || 'customer'}</ProfileRole>
+                  <ProfileRole>{t(userRole) || userRole || 'customer'}</ProfileRole>
                 </ProfileDropdownHeader>
                 
                 <DropdownMenuItem onClick={handleNavigateToProfile}>
                   <MenuIcon>
                     <IoPersonOutline />
                   </MenuIcon>
-                  View Profile
+                  {t('Profile') || 'View Profile'}
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem onClick={handleSettings}>
                   <MenuIcon>
                     <IoSettingsOutline />
                   </MenuIcon>
-                  Settings
+                  {t('Settings') || 'Settings'}
                 </DropdownMenuItem>
                 
                 <DropdownMenuItem className="logout" onClick={handleLogout}>
                   <MenuIcon>
                     <IoLogOutOutline />
                   </MenuIcon>
-                  Logout
+                  {t('Logout') || 'Logout'}
                 </DropdownMenuItem>
               </ProfileDropdown>
             )}
           </ProfileSection>
         ) : (
           <ConnectButton onClick={() => navigate('/auth/login')}>
-            Connect
+            {t('Connect') || 'Connect'}
           </ConnectButton>
         )}
       </ShopHeaderContent>

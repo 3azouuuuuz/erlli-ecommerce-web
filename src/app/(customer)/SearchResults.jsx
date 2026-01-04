@@ -4,6 +4,8 @@ import styled from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import ShopHeader from '../../components/ShopHeader';
 import { supabase } from '../../lib/supabase';
+import { useCurrency } from '../../contexts/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -163,8 +165,11 @@ const SearchResults = () => {
   const query = searchParams.get('query');
   const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
+  const { formatCurrency, currency } = useCurrency();
+  const { t } = useTranslation();
   
   const [products, setProducts] = useState([]);
+  const [convertedProducts, setConvertedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -210,6 +215,35 @@ const SearchResults = () => {
     fetchSearchResults();
   }, [query]);
 
+  // Convert product prices when currency changes
+  useEffect(() => {
+    const convertProductPrices = async () => {
+      if (products.length === 0) return;
+      
+      const productsWithConvertedPrices = await Promise.all(
+        products.map(async (product) => {
+          const hasDiscount = product.sale_percentage && product.sale_percentage > 0;
+          const discountedPrice = hasDiscount 
+            ? product.price * (1 - product.sale_percentage / 100) 
+            : product.price;
+          
+          const displayPrice = await formatCurrency(hasDiscount ? discountedPrice : product.price);
+          const displayOriginalPrice = hasDiscount ? await formatCurrency(product.price) : null;
+          
+          return {
+            ...product,
+            displayPrice,
+            displayOriginalPrice,
+            priceCurrency: currency
+          };
+        })
+      );
+      setConvertedProducts(productsWithConvertedPrices);
+    };
+    
+    convertProductPrices();
+  }, [products, currency, formatCurrency]);
+
   const highlightText = (text, searchQuery) => {
     if (!searchQuery || !text) return text;
 
@@ -231,13 +265,10 @@ const SearchResults = () => {
       image_url: product.image_url,
       description: product.description || 'No description available',
       price: product.price,
+      displayPrice: product.displayPrice,
       sale_percentage: product.sale_percentage || null,
     };
     navigate(`/ProductsView?product=${encodeURIComponent(JSON.stringify(standardizedProduct))}`);
-  };
-
-  const formatPrice = (price) => {
-    return price.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   if (loading) {
@@ -251,7 +282,7 @@ const SearchResults = () => {
           onLogout={logout}
         />
         <LoadingContainer>
-          <LoadingText>Searching...</LoadingText>
+          <LoadingText>{t('Searching') || 'Searching'}...</LoadingText>
         </LoadingContainer>
       </PageContainer>
     );
@@ -269,24 +300,21 @@ const SearchResults = () => {
       
       <Container>
         <HeaderSection>
-          <SearchQuery>Search results for "{query}"</SearchQuery>
+          <SearchQuery>{t('SearchResultsFor') || 'Search results for'} "{query}"</SearchQuery>
           <ResultCount>
-            {products.length} {products.length === 1 ? 'product' : 'products'} found
+            {convertedProducts.length} {convertedProducts.length === 1 ? (t('product') || 'product') : (t('products') || 'products')} {t('found') || 'found'}
           </ResultCount>
         </HeaderSection>
 
-        {products.length === 0 ? (
+        {convertedProducts.length === 0 ? (
           <NoResultsContainer>
-            <NoResultsText>No products found for "{query}"</NoResultsText>
-            <NoResultsSubtext>Try searching with different keywords</NoResultsSubtext>
+            <NoResultsText>{t('NoProductsFoundFor') || 'No products found for'} "{query}"</NoResultsText>
+            <NoResultsSubtext>{t('TrySearchingDifferentKeywords') || 'Try searching with different keywords'}</NoResultsSubtext>
           </NoResultsContainer>
         ) : (
           <ProductsGrid>
-            {products.map((product) => {
+            {convertedProducts.map((product) => {
               const hasDiscount = product.sale_percentage && product.sale_percentage > 0;
-              const discountedPrice = hasDiscount 
-                ? product.price * (1 - product.sale_percentage / 100) 
-                : null;
 
               return (
                 <ProductCard key={product.id} onClick={() => handleProductPress(product)}>
@@ -296,9 +324,9 @@ const SearchResults = () => {
                       {highlightText(product.description, query)}
                     </ProductDescription>
                     <PriceContainer>
-                      <Price>{formatPrice(hasDiscount ? discountedPrice : product.price)}</Price>
-                      {hasDiscount && (
-                        <OriginalPrice>{formatPrice(product.price)}</OriginalPrice>
+                      <Price>{product.displayPrice}</Price>
+                      {hasDiscount && product.displayOriginalPrice && (
+                        <OriginalPrice>{product.displayOriginalPrice}</OriginalPrice>
                       )}
                     </PriceContainer>
                   </ProductInfo>

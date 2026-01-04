@@ -220,7 +220,6 @@ const PayoutSettings = () => {
       console.log('Initializing with profile ID:', profile.id);
 
       try {
-        // Use the authenticated supabase client from AuthContext
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
@@ -283,16 +282,35 @@ const PayoutSettings = () => {
   useEffect(() => {
     const handleMessage = async (event) => {
       // Security: Only accept messages from trusted domains
-      if (!event.origin.includes('stripe.com') && 
-          !event.origin.includes('erlli.com') && 
-          !event.origin.includes('supabase')) {
+      const origin = event.origin || '';
+      const isTrusted = origin.includes('localhost') || 
+                       origin.includes('stripe.com') || 
+                       origin.includes('erlli.com') || 
+                       origin === '';
+      
+      if (!isTrusted) {
         return;
       }
 
       console.log('Received message:', event.data);
 
       try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        let data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+
+        // Handle double-stringified payload from mobile
+        if (typeof data === 'string') {
+          try {
+            data = JSON.parse(data);
+          } catch (e) {
+            // Not JSON, ignore
+          }
+        }
+
+        // Ignore non-OAuth messages
+        if (!data || (!data.code && !data.error)) {
+          console.log('Invalid message format:', data);
+          return;
+        }
 
         if (data.error) {
           alert(data.errorDescription || 'Failed to link Stripe account');
@@ -305,7 +323,7 @@ const PayoutSettings = () => {
 
         const { code, state } = data;
         if (!code || !state) {
-          console.log('Invalid message format:', data);
+          console.log('Missing code or state:', data);
           return;
         }
 
@@ -424,7 +442,9 @@ const PayoutSettings = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ vendorId: profile.id }),
+          body: JSON.stringify({ 
+            vendorId: profile.id
+          }),
         }
       );
 

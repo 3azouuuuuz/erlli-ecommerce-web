@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { supabase } from '../lib/supabase';
-
+import { useCurrency } from '../contexts/CurrencyContext';
+import { useTranslation } from 'react-i18next';
 const DetailsContainer = styled.div`
   background: white;
   border-radius: 16px;
@@ -9,12 +10,10 @@ const DetailsContainer = styled.div`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid #e8eaed;
   transition: all 0.3s ease;
-
   &:hover {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
     border-color: #00BC7D;
   }
-
   @media (max-width: 768px) {
     padding: 24px;
     border-radius: 12px;
@@ -38,7 +37,6 @@ const ProductPrice = styled.span`
   -webkit-text-fill-color: transparent;
   letter-spacing: -1.5px;
   line-height: 1;
-
   @media (max-width: 768px) {
     font-size: 36px;
   }
@@ -51,7 +49,6 @@ const RealPrice = styled.span`
   color: #999;
   text-decoration: line-through;
   opacity: 0.8;
-
   @media (max-width: 768px) {
     font-size: 18px;
   }
@@ -67,7 +64,6 @@ const DiscountBadge = styled.span`
   font-family: 'Raleway', sans-serif;
   box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
   letter-spacing: 0.5px;
-
   @media (max-width: 768px) {
     font-size: 13px;
     padding: 6px 12px;
@@ -89,15 +85,12 @@ const ProductDescription = styled.div`
   color: #5f6368;
   line-height: 1.8;
   margin: 0;
-
   p {
     margin-bottom: 12px;
-
     &:last-child {
       margin-bottom: 0;
     }
   }
-
   @media (max-width: 768px) {
     font-size: 15px;
     line-height: 1.7;
@@ -117,7 +110,6 @@ const LoadingSpinner = styled.div`
   border-top: 3px solid #00BC7D;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -125,24 +117,33 @@ const LoadingSpinner = styled.div`
 `;
 
 const ProductDetails = ({ productData }) => {
+  const { formatCurrency } = useCurrency();
   const [discountedPrice, setDiscountedPrice] = useState(null);
   const [discountPercentage, setDiscountPercentage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [convertedPrice, setConvertedPrice] = useState('');
+  const [convertedDiscountedPrice, setConvertedDiscountedPrice] = useState('');
+const { t } = useTranslation();
   useEffect(() => {
     const checkFlashSale = async () => {
       setIsLoading(true);
-
+      
       if (productData.sale_percentage && productData.sale_percentage > 0) {
         const discount = productData.sale_percentage;
         const realPrice = productData.price;
         const discounted = realPrice * (1 - discount / 100);
         setDiscountedPrice(discounted);
         setDiscountPercentage(discount);
+        
+        const convertedRealPrice = await formatCurrency(realPrice);
+        const convertedDiscount = await formatCurrency(discounted);
+        setConvertedPrice(convertedRealPrice);
+        setConvertedDiscountedPrice(convertedDiscount);
+        
         setIsLoading(false);
         return;
       }
-
+      
       try {
         const currentTime = new Date().toISOString();
         const { data: flashSales, error: flashSaleError } = await supabase
@@ -150,13 +151,15 @@ const ProductDetails = ({ productData }) => {
           .select('id, start_time, end_time')
           .lte('start_time', currentTime)
           .gte('end_time', currentTime);
-
+          
         if (flashSaleError) {
           console.error('Flash sale query error:', flashSaleError);
+          const convertedRealPrice = await formatCurrency(productData.price);
+          setConvertedPrice(convertedRealPrice);
           setIsLoading(false);
           return;
         }
-
+        
         if (flashSales && flashSales.length > 0) {
           const flashSaleIds = flashSales.map(sale => sale.id);
           const { data: flashSaleProduct, error: flashSaleProductError } = await supabase
@@ -165,33 +168,46 @@ const ProductDetails = ({ productData }) => {
             .in('flash_sale_id', flashSaleIds)
             .eq('product_id', productData.id)
             .single();
-
+            
           if (flashSaleProductError && flashSaleProductError.code !== 'PGRST116') {
             console.error('Flash sale product error:', flashSaleProductError);
           }
-
+          
           if (flashSaleProduct) {
             const discount = flashSaleProduct.discount_percentage;
             const realPrice = productData.price;
             const discounted = realPrice * (1 - discount / 100);
             setDiscountedPrice(discounted);
             setDiscountPercentage(discount);
+            
+            const convertedRealPrice = await formatCurrency(realPrice);
+            const convertedDiscount = await formatCurrency(discounted);
+            setConvertedPrice(convertedRealPrice);
+            setConvertedDiscountedPrice(convertedDiscount);
+          } else {
+            const convertedRealPrice = await formatCurrency(productData.price);
+            setConvertedPrice(convertedRealPrice);
           }
+        } else {
+          const convertedRealPrice = await formatCurrency(productData.price);
+          setConvertedPrice(convertedRealPrice);
         }
       } catch (error) {
         console.error('Error checking flash sale:', error.message);
+        const convertedRealPrice = await formatCurrency(productData.price);
+        setConvertedPrice(convertedRealPrice);
       } finally {
         setIsLoading(false);
       }
     };
-
+    
     if (productData.id) {
       checkFlashSale();
     }
-  }, [productData.id, productData.price, productData.sale_percentage]);
+  }, [productData.id, productData.price, productData.sale_percentage, formatCurrency]);
 
   const hasDiscount = discountedPrice !== null;
-
+  
   if (isLoading) {
     return (
       <DetailsContainer>
@@ -201,31 +217,30 @@ const ProductDetails = ({ productData }) => {
       </DetailsContainer>
     );
   }
-
+  
   return (
-    <DetailsContainer>
-      <PriceSection>
-        {hasDiscount ? (
-          <>
-            <ProductPrice>${discountedPrice.toFixed(2)}</ProductPrice>
-            <RealPrice>${productData.price.toFixed(2)}</RealPrice>
-            <DiscountBadge>-{discountPercentage}%</DiscountBadge>
-          </>
-        ) : (
-          <ProductPrice>${productData.price.toFixed(2)}</ProductPrice>
-        )}
-      </PriceSection>
-
-      <DescriptionTitle>Product Description</DescriptionTitle>
-      <ProductDescription>
-        {productData.description ? (
-          <p dangerouslySetInnerHTML={{ __html: productData.description.replace(/\n/g, '<br />') }} />
-        ) : (
-          <p>No description available.</p>
-        )}
-      </ProductDescription>
-    </DetailsContainer>
-  );
+  <DetailsContainer>
+    <PriceSection>
+      {hasDiscount ? (
+        <>
+          <ProductPrice>{convertedDiscountedPrice}</ProductPrice>
+          <RealPrice>{convertedPrice}</RealPrice>
+          <DiscountBadge>-{discountPercentage}%</DiscountBadge>
+        </>
+      ) : (
+        <ProductPrice>{convertedPrice}</ProductPrice>
+      )}
+    </PriceSection>
+    <DescriptionTitle>{t('Description')}</DescriptionTitle>
+    <ProductDescription>
+      {productData.description ? (
+        <p dangerouslySetInnerHTML={{ __html: productData.description.replace(/\n/g, '<br />') }} />
+      ) : (
+        <p>{t('NoDescriptionAvailable')}</p>
+      )}
+    </ProductDescription>
+  </DetailsContainer>
+);
 };
 
 export default ProductDetails;

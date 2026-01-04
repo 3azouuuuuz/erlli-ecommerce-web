@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -7,7 +7,8 @@ import ShopHeader from '../../components/ShopHeader';
 import { IoChevronDown, IoCamera, IoPencil, IoClose } from 'react-icons/io5';
 import countries from '../../assets/countries';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { s3Client, CONTABO_BUCKET_NAME, CONTABO_ENDPOINT } from '../../lib/constants';
+import { s3Client, CONTABO_BUCKET_NAME, CONTABO_ENDPOINT, CONTABO_TENANT_ID } from '../../lib/constants';
+import { useTranslation } from 'react-i18next';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -15,21 +16,17 @@ const PageContainer = styled.div`
   padding-top: 80px;
   padding-bottom: 60px;
 `;
-
 const Container = styled.div`
   max-width: 600px;
   margin: 0 auto;
   padding: 40px 24px;
-
   @media (max-width: 768px) {
     padding: 24px 16px;
   }
 `;
-
 const Header = styled.div`
   margin-bottom: 8px;
 `;
-
 const Title = styled.h1`
   font-size: 28px;
   font-weight: 700;
@@ -39,7 +36,6 @@ const Title = styled.h1`
   color: #000;
   margin: 0;
 `;
-
 const Subtitle = styled.p`
   font-size: 16px;
   font-weight: 500;
@@ -49,7 +45,6 @@ const Subtitle = styled.p`
   color: #666;
   margin: 16px 0 0 0;
 `;
-
 const AvatarContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -57,7 +52,6 @@ const AvatarContainer = styled.div`
   margin: 40px 0;
   position: relative;
 `;
-
 const AvatarCircle = styled.div`
   width: 140px;
   height: 140px;
@@ -71,30 +65,25 @@ const AvatarCircle = styled.div`
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
-
   &:hover {
     border-color: #00A66A;
     transform: scale(1.02);
   }
-
   ${props => props.uploading && `
     pointer-events: none;
     opacity: 0.6;
   `}
 `;
-
 const AvatarImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
 `;
-
 const CameraIcon = styled(IoCamera)`
   font-size: 34px;
   color: #00BC7D;
 `;
-
 const EditButton = styled.button`
   position: absolute;
   top: 8px;
@@ -110,17 +99,14 @@ const EditButton = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 188, 125, 0.3);
-
   &:hover {
     background: #00A66A;
     transform: scale(1.1);
   }
-
   &:active {
     transform: scale(0.95);
   }
 `;
-
 const UploadOverlay = styled.div`
   position: absolute;
   top: 0;
@@ -133,7 +119,6 @@ const UploadOverlay = styled.div`
   justify-content: center;
   align-items: center;
 `;
-
 const Spinner = styled.div`
   width: 40px;
   height: 40px;
@@ -141,46 +126,38 @@ const Spinner = styled.div`
   border-top: 4px solid white;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
 `;
-
 const HiddenFileInput = styled.input`
   display: none;
 `;
-
 const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 20px;
 `;
-
 const InputRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
-
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
 `;
-
 const Label = styled.label`
   font-size: 14px;
   font-weight: 600;
   font-family: 'Raleway', sans-serif;
   color: #333;
 `;
-
 const Input = styled.input`
   width: 100%;
   padding: 16px;
@@ -191,22 +168,18 @@ const Input = styled.input`
   font-family: 'Raleway', sans-serif;
   outline: none;
   transition: all 0.2s ease;
-
   &:focus {
     border-color: #00BC7D;
     background: white;
   }
-
   &::placeholder {
     color: #999;
   }
-
   &:disabled {
     cursor: not-allowed;
     opacity: 0.6;
   }
 `;
-
 const PhoneInputContainer = styled.div`
   background: #F8F8F8;
   border-radius: 59px;
@@ -216,13 +189,11 @@ const PhoneInputContainer = styled.div`
   padding: 0 16px;
   border: 1px solid transparent;
   transition: all 0.2s ease;
-
   &:focus-within {
     border-color: #00BC7D;
     background: white;
   }
 `;
-
 const CountrySelector = styled.button`
   display: flex;
   align-items: center;
@@ -233,44 +204,37 @@ const CountrySelector = styled.button`
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-
   &:hover {
     opacity: 0.8;
   }
-
   &:disabled {
     cursor: not-allowed;
     opacity: 0.6;
   }
 `;
-
 const FlagImage = styled.img`
   width: 24px;
   height: 18px;
   object-fit: cover;
   border-radius: 2px;
 `;
-
 const PhoneCode = styled.span`
   font-size: 16px;
   font-family: 'Raleway', sans-serif;
   color: #333;
   min-width: 50px;
 `;
-
 const PhoneInput = styled(Input)`
   flex: 1;
   background: transparent;
   border: none;
   border-radius: 0;
   padding: 0 0 0 12px;
-
   &:focus {
     background: transparent;
     border: none;
   }
 `;
-
 const SaveButton = styled.button`
   width: 100%;
   padding: 16px 24px;
@@ -285,23 +249,19 @@ const SaveButton = styled.button`
   transition: all 0.3s ease;
   margin-top: 20px;
   box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
-
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(0, 188, 125, 0.4);
   }
-
   &:active {
     transform: translateY(0);
   }
-
   &:disabled {
     cursor: not-allowed;
     opacity: 0.6;
     transform: none;
   }
 `;
-
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -314,13 +274,11 @@ const ModalOverlay = styled.div`
   align-items: center;
   z-index: 2000;
   animation: fadeIn 0.2s ease;
-
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
   }
 `;
-
 const ModalContent = styled.div`
   background: white;
   border-radius: 12px;
@@ -331,7 +289,6 @@ const ModalContent = styled.div`
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
-
   @keyframes slideUp {
     from {
       opacity: 0;
@@ -343,7 +300,6 @@ const ModalContent = styled.div`
     }
   }
 `;
-
 const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -351,7 +307,6 @@ const ModalHeader = styled.div`
   padding: 20px;
   border-bottom: 1px solid #ECFDF5;
 `;
-
 const ModalTitle = styled.h2`
   font-size: 18px;
   font-weight: 700;
@@ -359,7 +314,6 @@ const ModalTitle = styled.h2`
   color: #333;
   margin: 0;
 `;
-
 const CloseButton = styled.button`
   background: none;
   border: none;
@@ -369,17 +323,14 @@ const CloseButton = styled.button`
   justify-content: center;
   padding: 4px;
   transition: all 0.2s ease;
-
   &:hover {
     opacity: 0.7;
   }
 `;
-
 const ModalList = styled.div`
   overflow-y: auto;
   padding: 8px 0;
 `;
-
 const CountryItem = styled.button`
   width: 100%;
   padding: 16px 20px;
@@ -392,16 +343,13 @@ const CountryItem = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
-
   &:hover {
     background: #F8F8F8;
   }
-
   &:active {
     background: #ECFDF5;
   }
 `;
-
 const CountryText = styled.span`
   font-size: 16px;
   font-family: 'Raleway', sans-serif;
@@ -411,7 +359,7 @@ const CountryText = styled.span`
 const ProfileSettings = () => {
   const navigate = useNavigate();
   const { user, profile, logout, refreshProfile } = useAuth();
-
+  const { t } = useTranslation();
   const [selectedImage, setSelectedImage] = useState(profile?.avatar_url || null);
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
@@ -427,8 +375,7 @@ const ProfileSettings = () => {
   const [selectedCountry, setSelectedCountry] = useState(profile?.country || '');
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (profile) {
@@ -446,36 +393,26 @@ const ProfileSettings = () => {
 
   const uploadImageToContabo = async (file) => {
     if (!file) {
-      alert('Please select an image first.');
+      alert(t('SelectImageFirst'));
       return null;
     }
-
     try {
       setUploading(true);
-
-      // Validate file type and size
       if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-        alert('Please select a JPEG or PNG image.');
+        alert(t('SelectJpegPng'));
         return null;
       }
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image size exceeds 5MB limit');
+        alert(t('ImageSizeLimit'));
         return null;
       }
-
       const fileName = `avatar_${Date.now()}_${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`;
-
-      console.log('Uploading to Contabo S3...');
-
-      // Read file as ArrayBuffer
       const arrayBuffer = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.onerror = () => reject(reader.error);
         reader.readAsArrayBuffer(file);
       });
-
-      // Upload to Contabo S3 (same path as Signup3)
       const command = new PutObjectCommand({
         Bucket: CONTABO_BUCKET_NAME,
         Key: `public/${fileName}`,
@@ -483,25 +420,17 @@ const ProfileSettings = () => {
         ContentType: file.type,
         ACL: 'public-read',
       });
-
       await s3Client.send(command);
-
-      console.log('Upload successful:', fileName);
-
-      // Construct public URL (same format as Signup3)
-      const publicUrl = `${CONTABO_ENDPOINT}/${CONTABO_BUCKET_NAME}/public/${fileName}`;
-
-      console.log('Image uploaded successfully, public URL:', publicUrl);
+      const publicUrl = `${CONTABO_ENDPOINT}/${CONTABO_TENANT_ID}:${CONTABO_BUCKET_NAME}/public/${fileName}`;
       return publicUrl;
     } catch (error) {
       console.error('Image upload error:', error);
-
       if (error.name === 'AccessDenied') {
-        alert('Storage permission error. Please contact support to enable avatar uploads.');
+        alert(t('StoragePermissionError'));
       } else if (error.name === 'NoSuchBucket') {
-        alert('Storage bucket not configured. Please contact support.');
+        alert(t('StorageBucketError'));
       } else {
-        alert('Failed to upload image. Please try again or contact support.');
+        alert(t('UploadFailed'));
       }
       return null;
     } finally {
@@ -516,7 +445,6 @@ const ProfileSettings = () => {
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result);
@@ -527,35 +455,27 @@ const ProfileSettings = () => {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-
     if (!profile?.id) {
-      alert('Profile ID is missing. Cannot save changes.');
+      alert(t('ProfileIdMissing'));
       return;
     }
-
     const country = countries.find((c) => c.name === selectedCountry);
     if (!country) {
-      alert('Please select a valid country.');
+      alert(t('SelectValidCountry'));
       return;
     }
-
     const fullPhone = phone ? `${country.phoneCode}${phone.replace(/\D/g, '')}` : profile?.phone || '';
-
     try {
       let avatarUrl = profile?.avatar_url || null;
-
-      // Upload new image if selected and it's a local file (base64 or blob)
       if (selectedImage && !selectedImage.startsWith('http')) {
         const file = fileInputRef.current?.files?.[0];
         if (file) {
           avatarUrl = await uploadImageToContabo(file);
           if (!avatarUrl) {
-            // Upload failed, stop the save process
             return;
           }
         }
       }
-
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -567,25 +487,21 @@ const ProfileSettings = () => {
           avatar_url: avatarUrl,
         })
         .eq('id', profile.id);
-
       if (error) {
         throw error;
       }
-
       await refreshProfile();
-      alert('Your profile has been updated successfully!');
+      alert(t('ProfileUpdated'));
       navigate('/Settings');
     } catch (error) {
       console.error('Error in handleSaveProfile:', error);
-      alert('Failed to update profile. Please try again.');
+      alert(t('UpdateProfileFailed'));
     }
   };
 
   const getImageUrl = (url) => {
     if (!url) return null;
-    // If it's already a full URL or data URI, return as-is
     if (url.startsWith('http') || url.startsWith('data:')) return url;
-    // Otherwise, it might be a relative path - construct full URL
     return `${CONTABO_ENDPOINT}/${CONTABO_BUCKET_NAME}/${url}`;
   };
 
@@ -602,10 +518,9 @@ const ProfileSettings = () => {
       />
       <Container>
         <Header>
-          <Title>Settings</Title>
-          <Subtitle>Your Profile</Subtitle>
+          <Title>{t('Settings')}</Title>
+          <Subtitle>{t('YourProfile')}</Subtitle>
         </Header>
-
         <AvatarContainer>
           <AvatarCircle onClick={handleImageClick} uploading={uploading}>
             {selectedImage ? (
@@ -629,44 +544,41 @@ const ProfileSettings = () => {
             onChange={handleFileChange}
           />
         </AvatarContainer>
-
         <Form onSubmit={handleSaveProfile}>
           <InputRow>
             <InputGroup>
-              <Label>First Name</Label>
+              <Label>{t('FirstName')}</Label>
               <Input
                 type="text"
-                placeholder="First Name"
+                placeholder={t('FirstName')}
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 disabled={uploading}
               />
             </InputGroup>
             <InputGroup>
-              <Label>Last Name</Label>
+              <Label>{t('LastName')}</Label>
               <Input
                 type="text"
-                placeholder="Last Name"
+                placeholder={t('LastName')}
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 disabled={uploading}
               />
             </InputGroup>
           </InputRow>
-
           <InputGroup>
-            <Label>Email</Label>
+            <Label>{t('Email')}</Label>
             <Input
               type="email"
-              placeholder="Email"
+              placeholder={t('Email')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={uploading}
             />
           </InputGroup>
-
           <InputGroup>
-            <Label>Phone Number</Label>
+            <Label>{t('PhoneNumber')}</Label>
             <PhoneInputContainer>
               <CountrySelector
                 type="button"
@@ -688,25 +600,23 @@ const ProfileSettings = () => {
               </CountrySelector>
               <PhoneInput
                 type="tel"
-                placeholder="Phone Number"
+                placeholder={t('PhoneNumber')}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 disabled={uploading}
               />
             </PhoneInputContainer>
           </InputGroup>
-
           <SaveButton type="submit" disabled={uploading}>
-            {uploading ? 'Uploading...' : 'Save Changes'}
+            {uploading ? t('Uploading') : t('SaveChanges')}
           </SaveButton>
         </Form>
       </Container>
-
       {countryModalVisible && (
         <ModalOverlay onClick={() => setCountryModalVisible(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <ModalHeader>
-              <ModalTitle>Select Country</ModalTitle>
+              <ModalTitle>{t('SelectCountry')}</ModalTitle>
               <CloseButton onClick={() => setCountryModalVisible(false)}>
                 <IoClose size={28} color="#333" />
               </CloseButton>
